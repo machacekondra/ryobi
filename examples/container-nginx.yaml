@@ -1,0 +1,43 @@
+## Ryobi Example: Nginx Container
+##
+## The simplest container deployment — a single Nginx pod with a Service.
+##
+## Usage:
+##   ryobi deploy examples/container-nginx.yaml
+##   ryobi app status nginx-app
+
+apiVersion: ryobi/v1
+kind: Environment
+metadata:
+  name: dev
+providers:
+  kubernetes:
+    scope: default
+recipes:
+  Ryobi.Compute/containers:
+    kubernetes:
+      templateKind: terraform
+      templatePath: ./recipes/kubernetes-pod
+---
+apiVersion: ryobi/v1
+kind: Application
+metadata:
+  name: nginx-app
+  environment: dev
+
+resources:
+  - name: nginx
+    type: Ryobi.Compute/containers
+    recipe: kubernetes
+    parameters:
+      name: nginx
+      image: nginx:1.25-alpine
+      replicas: 2
+      ports:
+        - container_port: 80
+          name: http
+      cpu_request: "100m"
+      memory_request: "64Mi"
+      health_check_path: /
+      health_check_port: 80
+      service_type: ClusterIP

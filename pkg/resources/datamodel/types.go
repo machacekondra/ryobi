@@ -115,6 +115,7 @@ const (
 // Well-known resource type identifiers for recipes.
 const (
 	ResourceTypeVirtualMachine = "Ryobi.Compute/virtualMachines"
+	ResourceTypeContainer      = "Ryobi.Compute/containers"
 )
 
 // VirtualMachineProperties holds VM-specific configuration passed as recipe parameters.
@@ -163,4 +164,75 @@ type ServicePort struct {
 	Port       int    `json:"port"`
 	TargetPort int    `json:"target_port"`
 	Protocol   string `json:"protocol,omitempty"`
+}
+
+// ContainerProperties holds container-specific configuration passed as recipe parameters.
+// This serves as documentation for the expected parameter schema when using
+// the Ryobi.Compute/containers resource type with the kubernetes-pod recipe.
+type ContainerProperties struct {
+	// Name of the deployment
+	Name string `json:"name"`
+
+	// Container image (e.g. "nginx:1.25")
+	Image string `json:"image"`
+
+	// Namespace for the deployment (default: "default")
+	Namespace string `json:"namespace,omitempty"`
+
+	// Number of replicas
+	Replicas int `json:"replicas,omitempty"`
+
+	// Ports to expose
+	Ports []ContainerPort `json:"ports,omitempty"`
+
+	// Environment variables
+	Env []ContainerEnvVar `json:"env,omitempty"`
+
+	// Config data injected as a ConfigMap
+	ConfigData map[string]string `json:"config_data,omitempty"`
+
+	// CPU and memory requests/limits
+	CPURequest    string `json:"cpu_request,omitempty"`
+	CPULimit      string `json:"cpu_limit,omitempty"`
+	MemoryRequest string `json:"memory_request,omitempty"`
+	MemoryLimit   string `json:"memory_limit,omitempty"`
+
+	// Volume mounts
+	Volumes []ContainerVolume `json:"volumes,omitempty"`
+
+	// Health check
+	HealthCheckPath string `json:"health_check_path,omitempty"`
+	HealthCheckPort int    `json:"health_check_port,omitempty"`
+
+	// Service exposure
+	ServiceType string `json:"service_type,omitempty"`
+
+	// Ingress
+	IngressHost      string `json:"ingress_host,omitempty"`
+	IngressPath      string `json:"ingress_path,omitempty"`
+	IngressClass     string `json:"ingress_class,omitempty"`
+	IngressTLSSecret string `json:"ingress_tls_secret,omitempty"`
+}
+
+// ContainerPort defines a port exposed by the container.
+type ContainerPort struct {
+	ContainerPort int    `json:"container_port"`
+	ServicePort   int    `json:"service_port,omitempty"`
+	Protocol      string `json:"protocol,omitempty"`
+	Name          string `json:"name,omitempty"`
+}
+
+// ContainerEnvVar defines an environment variable for the container.
+type ContainerEnvVar struct {
+	Name  string `json:"name"`
+	Value string `json:"value,omitempty"`
+}
+
+// ContainerVolume defines a volume to mount into the container.
+type ContainerVolume struct {
+	Name         string `json:"name"`
+	MountPath    string `json:"mount_path"`
+	Size         string `json:"size,omitempty"`
+	StorageClass string `json:"storage_class,omitempty"`
+	ReadOnly     bool   `json:"read_only,omitempty"`
 }

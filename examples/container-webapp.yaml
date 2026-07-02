@@ -1,0 +1,109 @@
+## Ryobi Example: Web Application with Database
+##
+## Deploys a web app container with a PostgreSQL database (using the container
+## recipe for both). Demonstrates environment variables, health checks, Ingress,
+## volumes, and multi-container composition.
+##
+## Usage:
+##   ryobi deploy examples/container-webapp.yaml
+##   ryobi app status webapp
+
+apiVersion: ryobi/v1
+kind: Environment
+metadata:
+  name: staging
+providers:
+  kubernetes:
+    scope: default
+recipes:
+  Ryobi.Compute/containers:
+    kubernetes:
+      templateKind: terraform
+      templatePath: ./recipes/kubernetes-pod
+      parameters:
+        create_namespace: true
+        namespace: staging
+recipeConfig:
+  terraform:
+    providers:
+      kubernetes:
+        config_path: "~/.kube/config"
+---
+apiVersion: ryobi/v1
+kind: Application
+metadata:
+  name: webapp
+  environment: staging
+
+resources:
+  - name: database
+    type: Ryobi.Compute/containers
+    recipe: kubernetes
+    parameters:
+      name: postgres
+      image: postgres:16-alpine
+      replicas: 1
+      ports:
+        - container_port: 5432
+          name: postgres
+      cpu_request: "250m"
+      memory_request: "256Mi"
+      config_data:
+        POSTGRES_DB: webapp
+        POSTGRES_USER: webapp
+      secret_data:
+        POSTGRES_PASSWORD: "s3cret-p@ssw0rd"
+      volumes:
+        - name: pgdata
+          mount_path: /var/lib/postgresql/data
+          size: 10Gi
+      service_type: ClusterIP
+
+  - name: api
+    type: Ryobi.Compute/containers
+    recipe: kubernetes
+    parameters:
+      name: api
+      image: myregistry.io/webapp-api:latest
+      replicas: 3
+      ports:
+        - container_port: 8080
+          name: http
+      env:
+        - name: DATABASE_URL
+          value: "postgres://webapp:s3cret-p@ssw0rd@postgres.staging.svc.cluster.local:5432/webapp?sslmode=disable"
+        - name: LOG_LEVEL
+          value: info
+      cpu_request: "250m"
+      cpu_limit: "500m"
+      memory_request: "256Mi"
+      memory_limit: "512Mi"
+      health_check_path: /healthz
+      health_check_port: 8080
+      service_type: ClusterIP
+      ingress_host: api.example.com
+      ingress_path: /
+      ingress_class: nginx
+      ingress_tls_secret: api-tls
+
+  - name: frontend
+    type: Ryobi.Compute/containers
+    recipe: kubernetes
+    parameters:
+      name: frontend
+      image: myregistry.io/webapp-frontend:latest
+      replicas: 2
+      ports:
+        - container_port: 3000
+          name: http
+      env:
+        - name: API_URL
+          value: "http://api.staging.svc.cluster.local:8080"
+      cpu_request: "100m"
+      memory_request: "128Mi"
+      health_check_path: /
+      health_check_port: 3000
+      service_type: ClusterIP
+      ingress_host: app.example.com
+      ingress_class: nginx
+      ingress_tls_secret: app-tls

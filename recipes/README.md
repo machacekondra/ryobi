@@ -7,6 +7,7 @@ This directory contains built-in Terraform recipe modules that ship with Ryobi.
 | Recipe | Resource Type | Description |
 |--------|--------------|-------------|
 | [kubevirt-vm](kubevirt-vm/) | `Ryobi.Compute/virtualMachines` | KubeVirt virtual machine on Kubernetes |
+| [kubernetes-pod](kubernetes-pod/) | `Ryobi.Compute/containers` | Containerized application on Kubernetes (Deployment + Service + Ingress) |
 
 ## Using a Recipe
 
