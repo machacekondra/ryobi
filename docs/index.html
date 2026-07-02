@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ryobi Documentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<!-- Top Navigation -->
+<nav class="topnav">
+  <a href="index.html" class="topnav-brand">
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="28" height="28" rx="6" fill="#2563eb"/>
+      <path d="M7 8h6l4 6-4 6H7l4-6L7 8z" fill="#fff"/>
+      <path d="M14 8h6l-4 6 4 6h-6l-4-6 4-6z" fill="#93c5fd"/>
+    </svg>
+    Ryobi Docs
+  </a>
+  <ul class="topnav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="reference/cli.html">Reference</a></li>
+    <li><a href="https://github.com/ryobi-project/ryobi" class="gh-link">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a></li>
+  </ul>
+  <button class="hamburger" onclick="document.querySelector('.sidebar').classList.toggle('open')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <nav>
+    <ul class="sidebar-nav">
+      <li><a href="index.html" class="active">Home</a></li>
+
+      <li class="sidebar-section">Getting Started</li>
+      <li><a href="getting-started/quickstart.html">Quick Start</a></li>
+      <li><a href="getting-started/installation.html">Installation</a></li>
+
+      <li class="sidebar-section">Concepts</li>
+      <li><a href="concepts/overview.html">Architecture Overview</a></li>
+      <li><a href="concepts/environments.html">Environments</a></li>
+      <li><a href="concepts/applications.html">Applications</a></li>
+      <li><a href="concepts/recipes.html">Recipes</a></li>
+      <li><a href="concepts/resources.html">Resources</a></li>
+
+      <li class="sidebar-section">Guides</li>
+      <li><a href="guides/deploy-app.html">Deploy an Application</a></li>
+      <li><a href="guides/create-recipe.html">Create a Recipe</a></li>
+      <li><a href="guides/manage-environments.html">Manage Environments</a></li>
+      <li><a href="guides/terraform-state.html">Terraform State</a></li>
+
+      <li class="sidebar-section">Reference</li>
+      <li><a href="reference/cli.html">CLI Commands</a></li>
+      <li><a href="reference/api.html">API Reference</a></li>
+      <li><a href="reference/yaml-schema.html">YAML Schema</a></li>
+      <li><a href="reference/configuration.html">Configuration</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<!-- Main Content -->
+<main class="main">
+  <div class="content">
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Ryobi Documentation</h1>
+      <p>A cloud-native application platform that enables developers and platform engineers to deploy and manage applications using Terraform recipes.</p>
+      <a href="getting-started/quickstart.html" class="hero-cta">
+        Get Started
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06z"/></svg>
+      </a>
+    </section>
+
+    <!-- Navigation Cards -->
+    <div class="card-grid">
+      <a href="getting-started/quickstart.html" class="card" style="text-decoration:none;color:inherit">
+        <div class="card-icon">&#128640;</div>
+        <h3>Quick Start</h3>
+        <p>Get up and running with Ryobi in minutes. Install the CLI, start the server, and deploy your first application.</p>
+        <span class="card-link">Get started</span>
+      </a>
+
+      <a href="concepts/overview.html" class="card" style="text-decoration:none;color:inherit">
+        <div class="card-icon">&#128161;</div>
+        <h3>Concepts</h3>
+        <p>Understand the core concepts behind Ryobi: environments, applications, resources, and Terraform recipes.</p>
+        <span class="card-link">Learn more</span>
+      </a>
+
+      <a href="guides/deploy-app.html" class="card" style="text-decoration:none;color:inherit">
+        <div class="card-icon">&#128214;</div>
+        <h3>How-to Guides</h3>
+        <p>Step-by-step instructions for deploying applications, creating recipes, and managing your platform.</p>
+        <span class="card-link">Browse guides</span>
+      </a>
+
+      <a href="reference/cli.html" class="card" style="text-decoration:none;color:inherit">
+        <div class="card-icon">&#128220;</div>
+        <h3>Reference</h3>
+        <p>Detailed reference for CLI commands, API endpoints, YAML schema, and server configuration.</p>
+        <span class="card-link">View reference</span>
+      </a>
+    </div>
+
+    <!-- Key Features -->
+    <section class="features">
+      <h2>Why Ryobi?</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="feature-icon">&#9881;&#65039;</div>
+          <h3>Terraform Recipes</h3>
+          <p>Define reusable infrastructure templates as Terraform modules. Register once, deploy everywhere.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128196;</div>
+          <h3>YAML Definitions</h3>
+          <p>Declare your entire application stack in simple, human-readable YAML. No proprietary languages needed.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#9729;&#65039;</div>
+          <h3>Multi-Cloud</h3>
+          <p>Deploy to Azure, AWS, or any cloud supported by Terraform providers. One tool, any target.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128230;</div>
+          <h3>Lightweight</h3>
+          <p>Runs as a single binary with PostgreSQL. No Kubernetes required. Deploy via Podman or systemd.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Install Banner -->
+    <section class="install-banner">
+      <h2>Install Ryobi</h2>
+      <p>Start with a single command:</p>
+      <div class="install-cmd">podman-compose -f deploy/podman-compose.yaml up -d</div>
+    </section>
+
+  </div>
+
+  <footer class="footer">
+    <ul class="footer-links">
+      <li><a href="https://github.com/ryobi-project/ryobi">GitHub</a></li>
+      <li><a href="https://github.com/ryobi-project/ryobi/issues">Issues</a></li>
+      <li><a href="reference/cli.html">CLI Reference</a></li>
+    </ul>
+    <p>&copy; 2026 The Ryobi Authors. Released under the Apache 2.0 License.</p>
+  </footer>
+</main>
+
+</body>
+</html>

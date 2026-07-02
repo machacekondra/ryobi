@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terraform State - Ryobi Docs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a href="../index.html" class="topnav-brand">
+    <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#2563eb"/><path d="M7 8h6l4 6-4 6H7l4-6L7 8z" fill="#fff"/><path d="M14 8h6l-4 6 4 6h-6l-4-6 4-6z" fill="#93c5fd"/></svg>
+    Ryobi Docs
+  </a>
+  <ul class="topnav-links">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="../reference/cli.html">Reference</a></li>
+  </ul>
+</nav>
+<aside class="sidebar">
+  <nav><ul class="sidebar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li class="sidebar-section">Getting Started</li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="../getting-started/installation.html">Installation</a></li>
+    <li class="sidebar-section">Concepts</li>
+    <li><a href="../concepts/overview.html">Architecture Overview</a></li>
+    <li><a href="../concepts/environments.html">Environments</a></li>
+    <li><a href="../concepts/applications.html">Applications</a></li>
+    <li><a href="../concepts/recipes.html">Recipes</a></li>
+    <li><a href="../concepts/resources.html">Resources</a></li>
+    <li class="sidebar-section">Guides</li>
+    <li><a href="../guides/deploy-app.html">Deploy an Application</a></li>
+    <li><a href="../guides/create-recipe.html">Create a Recipe</a></li>
+    <li><a href="../guides/manage-environments.html">Manage Environments</a></li>
+    <li><a href="../guides/terraform-state.html" class="active">Terraform State</a></li>
+    <li class="sidebar-section">Reference</li>
+    <li><a href="../reference/cli.html">CLI Commands</a></li>
+    <li><a href="../reference/api.html">API Reference</a></li>
+    <li><a href="../reference/yaml-schema.html">YAML Schema</a></li>
+    <li><a href="../reference/configuration.html">Configuration</a></li>
+  </ul></nav>
+</aside>
+<main class="main">
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Home</a> <span>/</span>
+      <a href="#">Guides</a> <span>/</span> Terraform State
+    </div>
+    <div class="page-header"><h1>Terraform State</h1></div>
+    <p>Ryobi manages Terraform state automatically. You do not need to configure backends manually.</p><h2>PostgreSQL Backend</h2><p>In production, Terraform state is stored in PostgreSQL using the native <code>pg</code> backend. Each resource gets a unique schema name derived from its resource ID (SHA-256 hash).</p><pre><code>terraform {
+  backend "pg" {
+    conn_str    = "postgres://ryobi:pass@localhost/ryobi"
+    schema_name = "tfstate_a1b2c3d4"
+  }
+}</code></pre><h2>Local Backend</h2><p>For development (when <code>RYOBI_DB_URL</code> is not set), state is stored as local files under the Terraform root directory.</p><h2>State Isolation</h2><p>Each resource gets its own isolated state. Deploying or destroying one resource never affects another.</p>
+  </div>
+  <footer class="footer">
+    <p>&copy; 2026 The Ryobi Authors. Released under the Apache 2.0 License.</p>
+  </footer>
+</main>
+</body>
+</html>

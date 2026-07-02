@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLI Commands - Ryobi Docs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="../index.html" class="topnav-brand">
+    <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#2563eb"/><path d="M7 8h6l4 6-4 6H7l4-6L7 8z" fill="#fff"/><path d="M14 8h6l-4 6 4 6h-6l-4-6 4-6z" fill="#93c5fd"/></svg>
+    Ryobi Docs
+  </a>
+  <ul class="topnav-links">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="cli.html">Reference</a></li>
+    <li><a href="https://github.com/ryobi-project/ryobi" class="gh-link">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a></li>
+  </ul>
+</nav>
+
+<aside class="sidebar">
+  <nav>
+    <ul class="sidebar-nav">
+      <li><a href="../index.html">Home</a></li>
+      <li class="sidebar-section">Getting Started</li>
+      <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+      <li><a href="../getting-started/installation.html">Installation</a></li>
+      <li class="sidebar-section">Concepts</li>
+      <li><a href="../concepts/overview.html">Architecture Overview</a></li>
+      <li><a href="../concepts/environments.html">Environments</a></li>
+      <li><a href="../concepts/applications.html">Applications</a></li>
+      <li><a href="../concepts/recipes.html">Recipes</a></li>
+      <li><a href="../concepts/resources.html">Resources</a></li>
+      <li class="sidebar-section">Guides</li>
+      <li><a href="../guides/deploy-app.html">Deploy an Application</a></li>
+      <li><a href="../guides/create-recipe.html">Create a Recipe</a></li>
+      <li><a href="../guides/manage-environments.html">Manage Environments</a></li>
+      <li><a href="../guides/terraform-state.html">Terraform State</a></li>
+      <li class="sidebar-section">Reference</li>
+      <li><a href="cli.html" class="active">CLI Commands</a></li>
+      <li><a href="api.html">API Reference</a></li>
+      <li><a href="yaml-schema.html">YAML Schema</a></li>
+      <li><a href="configuration.html">Configuration</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Home</a> <span>/</span>
+      <a href="cli.html">Reference</a> <span>/</span>
+      CLI Commands
+    </div>
+
+    <div class="page-header">
+      <h1>CLI Commands</h1>
+      <p>Complete reference for all <code>ryobi</code> CLI commands.</p>
+    </div>
+
+    <h2>Global Flags</h2>
+    <table>
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>--server &lt;url&gt;</code></td><td>Server URL (default: from <code>~/.ryobi/config.yaml</code> or <code>http://localhost:9000</code>)</td></tr>
+        <tr><td><code>--help</code></td><td>Show help for any command</td></tr>
+      </tbody>
+    </table>
+
+    <h2>ryobi deploy</h2>
+    <p>Deploy an application from a YAML definition file.</p>
+    <pre><code>ryobi deploy &lt;file&gt; [flags]</code></pre>
+    <table>
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>-e, --environment &lt;name&gt;</code></td><td>Override target environment</td></tr>
+        <tr><td><code>--wait</code></td><td>Wait for async operations to complete (default: <code>true</code>)</td></tr>
+      </tbody>
+    </table>
+    <p>Supports multi-document YAML files. Environments are processed before applications.</p>
+
+    <h2>ryobi env</h2>
+    <p>Manage environments.</p>
+    <table>
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>ryobi env list</code></td><td>List all environments</td></tr>
+        <tr><td><code>ryobi env show &lt;name&gt;</code></td><td>Show environment details as JSON</td></tr>
+        <tr><td><code>ryobi env delete &lt;name&gt;</code></td><td>Delete an environment</td></tr>
+      </tbody>
+    </table>
+
+    <h2>ryobi app</h2>
+    <p>Manage applications.</p>
+    <table>
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>ryobi app list</code></td><td>List all applications</td></tr>
+        <tr><td><code>ryobi app show &lt;name&gt;</code></td><td>Show application details as JSON</td></tr>
+        <tr><td><code>ryobi app status &lt;name&gt;</code></td><td>Show application resources and their states</td></tr>
+        <tr><td><code>ryobi app delete &lt;name&gt;</code></td><td>Delete an application</td></tr>
+      </tbody>
+    </table>
+
+    <h2>ryobi resource</h2>
+    <p>Manage Terraform-managed resources within an application.</p>
+    <table>
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>ryobi resource list --app &lt;name&gt;</code></td><td>List resources in an application</td></tr>
+        <tr><td><code>ryobi resource show &lt;name&gt; --app &lt;app&gt;</code></td><td>Show resource details and outputs</td></tr>
+        <tr><td><code>ryobi resource delete &lt;name&gt; --app &lt;app&gt;</code></td><td>Delete a resource (runs <code>terraform destroy</code>)</td></tr>
+      </tbody>
+    </table>
+
+    <h2>ryobi recipe</h2>
+    <p>View recipes registered in environments.</p>
+    <table>
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>ryobi recipe list -e &lt;env&gt;</code></td><td>List recipes registered in an environment</td></tr>
+      </tbody>
+    </table>
+
+    <h2>ryobi version</h2>
+    <p>Show CLI version information.</p>
+    <pre><code>ryobi version
+# ryobi version 0.1.0-dev (commit: abc1234, channel: dev)</code></pre>
+
+    <h2>Examples</h2>
+    <pre><code># Deploy a complete application stack
+ryobi deploy examples/app.yaml
+
+# Deploy with environment override
+ryobi deploy app.yaml -e staging
+
+# Check what was deployed
+ryobi app status my-app
+
+# View resource outputs (e.g., connection strings)
+ryobi resource show database --app my-app
+
+# Clean up
+ryobi resource delete database --app my-app
+ryobi app delete my-app
+ryobi env delete dev</code></pre>
+  </div>
+
+  <footer class="footer">
+    <ul class="footer-links">
+      <li><a href="https://github.com/ryobi-project/ryobi">GitHub</a></li>
+      <li><a href="https://github.com/ryobi-project/ryobi/issues">Issues</a></li>
+    </ul>
+    <p>&copy; 2026 The Ryobi Authors. Released under the Apache 2.0 License.</p>
+  </footer>
+</main>
+
+</body>
+</html>

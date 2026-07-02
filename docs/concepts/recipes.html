@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipes - Ryobi Docs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a href="../index.html" class="topnav-brand">
+    <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#2563eb"/><path d="M7 8h6l4 6-4 6H7l4-6L7 8z" fill="#fff"/><path d="M14 8h6l-4 6 4 6h-6l-4-6 4-6z" fill="#93c5fd"/></svg>
+    Ryobi Docs
+  </a>
+  <ul class="topnav-links">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="../reference/cli.html">Reference</a></li>
+  </ul>
+</nav>
+<aside class="sidebar">
+  <nav><ul class="sidebar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li class="sidebar-section">Getting Started</li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="../getting-started/installation.html">Installation</a></li>
+    <li class="sidebar-section">Concepts</li>
+    <li><a href="../concepts/overview.html">Architecture Overview</a></li>
+    <li><a href="../concepts/environments.html">Environments</a></li>
+    <li><a href="../concepts/applications.html">Applications</a></li>
+    <li><a href="../concepts/recipes.html" class="active">Recipes</a></li>
+    <li><a href="../concepts/resources.html">Resources</a></li>
+    <li class="sidebar-section">Guides</li>
+    <li><a href="../guides/deploy-app.html">Deploy an Application</a></li>
+    <li><a href="../guides/create-recipe.html">Create a Recipe</a></li>
+    <li><a href="../guides/manage-environments.html">Manage Environments</a></li>
+    <li><a href="../guides/terraform-state.html">Terraform State</a></li>
+    <li class="sidebar-section">Reference</li>
+    <li><a href="../reference/cli.html">CLI Commands</a></li>
+    <li><a href="../reference/api.html">API Reference</a></li>
+    <li><a href="../reference/yaml-schema.html">YAML Schema</a></li>
+    <li><a href="../reference/configuration.html">Configuration</a></li>
+  </ul></nav>
+</aside>
+<main class="main">
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Home</a> <span>/</span>
+      <a href="#">Concepts</a> <span>/</span> Recipes
+    </div>
+    <div class="page-header"><h1>Recipes</h1></div>
+    <p>A <strong>Recipe</strong> is a reusable Terraform module registered in an environment. When a resource references a recipe, Ryobi automatically executes the Terraform module to provision infrastructure.</p><h2>How Recipes Work</h2><ol><li><strong>Register</strong> &mdash; Define recipes in your environment YAML under the <code>recipes</code> field</li><li><strong>Reference</strong> &mdash; Application resources reference recipes by name and resource type</li><li><strong>Execute</strong> &mdash; When deployed, Ryobi generates <code>main.tf.json</code>, configures the backend and providers, then runs <code>terraform apply</code></li><li><strong>Output</strong> &mdash; Terraform outputs are stored on the resource and available to other resources via connections</li></ol><h2>State Management</h2><p>Terraform state is stored in PostgreSQL using the native <code>pg</code> backend. Each resource gets an isolated schema derived from its resource ID.</p>
+  </div>
+  <footer class="footer">
+    <p>&copy; 2026 The Ryobi Authors. Released under the Apache 2.0 License.</p>
+  </footer>
+</main>
+</body>
+</html>

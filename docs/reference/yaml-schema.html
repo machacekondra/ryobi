@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YAML Schema - Ryobi Docs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="../index.html" class="topnav-brand">
+    <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#2563eb"/><path d="M7 8h6l4 6-4 6H7l4-6L7 8z" fill="#fff"/><path d="M14 8h6l-4 6 4 6h-6l-4-6 4-6z" fill="#93c5fd"/></svg>
+    Ryobi Docs
+  </a>
+  <ul class="topnav-links">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="cli.html">Reference</a></li>
+    <li><a href="https://github.com/ryobi-project/ryobi" class="gh-link">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a></li>
+  </ul>
+</nav>
+
+<aside class="sidebar">
+  <nav>
+    <ul class="sidebar-nav">
+      <li><a href="../index.html">Home</a></li>
+      <li class="sidebar-section">Getting Started</li>
+      <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+      <li><a href="../getting-started/installation.html">Installation</a></li>
+      <li class="sidebar-section">Concepts</li>
+      <li><a href="../concepts/overview.html">Architecture Overview</a></li>
+      <li><a href="../concepts/environments.html">Environments</a></li>
+      <li><a href="../concepts/applications.html">Applications</a></li>
+      <li><a href="../concepts/recipes.html">Recipes</a></li>
+      <li><a href="../concepts/resources.html">Resources</a></li>
+      <li class="sidebar-section">Guides</li>
+      <li><a href="../guides/deploy-app.html">Deploy an Application</a></li>
+      <li><a href="../guides/create-recipe.html">Create a Recipe</a></li>
+      <li><a href="../guides/manage-environments.html">Manage Environments</a></li>
+      <li><a href="../guides/terraform-state.html">Terraform State</a></li>
+      <li class="sidebar-section">Reference</li>
+      <li><a href="cli.html">CLI Commands</a></li>
+      <li><a href="api.html">API Reference</a></li>
+      <li><a href="yaml-schema.html" class="active">YAML Schema</a></li>
+      <li><a href="configuration.html">Configuration</a></li>
+    </ul>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Home</a> <span>/</span>
+      <a href="cli.html">Reference</a> <span>/</span>
+      YAML Schema
+    </div>
+
+    <div class="page-header">
+      <h1>YAML Schema</h1>
+      <p>Reference for Ryobi application and environment YAML definitions.</p>
+    </div>
+
+    <h2>Environment</h2>
+    <p>An Environment defines the deployment target, cloud providers, and available recipes.</p>
+    <pre><code>apiVersion: ryobi/v1        # Required. Must be "ryobi/v1"
+kind: Environment            # Required. Must be "Environment"
+metadata:
+  name: &lt;string&gt;            # Required. Environment name
+
+providers:                   # Optional. Cloud provider scopes
+  azure:
+    scope: &lt;string&gt;         # Azure scope (subscription + resource group)
+  aws:
+    scope: &lt;string&gt;         # AWS scope (account + region)
+
+recipes:                     # Optional. Recipe registry
+  &lt;resourceType&gt;:           # e.g. "Applications.Datastores/postgresDatabases"
+    &lt;recipeName&gt;:           # e.g. "default"
+      templateKind: terraform  # Required. Must be "terraform"
+      templatePath: &lt;string&gt;  # Required. Terraform module source
+      parameters:              # Optional. Default parameters
+        &lt;key&gt;: &lt;value&gt;
+
+recipeConfig:                # Optional. Global recipe configuration
+  terraform:
+    providers:               # Provider-level overrides
+      &lt;providerName&gt;:
+        &lt;key&gt;: &lt;value&gt;</code></pre>
+
+    <h2>Application</h2>
+    <p>An Application groups resources that are deployed together into an environment.</p>
+    <pre><code>apiVersion: ryobi/v1        # Required. Must be "ryobi/v1"
+kind: Application            # Required. Must be "Application"
+metadata:
+  name: &lt;string&gt;            # Required. Application name
+  environment: &lt;string&gt;     # Required. Target environment name
+
+resources:                   # Optional. Resources to deploy
+  - name: &lt;string&gt;          # Required. Resource name
+    type: &lt;string&gt;          # Required. Resource type
+    recipe: &lt;string&gt;        # Required. Recipe name from environment
+    parameters:              # Optional. Parameter overrides
+      &lt;key&gt;: &lt;value&gt;
+    connections:             # Optional. References to other resources
+      - name: &lt;string&gt;      # Connection name
+        source: &lt;string&gt;    # Source resource name
+        key: &lt;string&gt;       # Output key to inject</code></pre>
+
+    <h2>Multi-Document Files</h2>
+    <p>You can combine environments and applications in a single file using YAML document separators (<code>---</code>). Environments are always processed first.</p>
+    <pre><code>apiVersion: ryobi/v1
+kind: Environment
+metadata:
+  name: dev
+recipes:
+  Applications.Datastores/postgresDatabases:
+    default:
+      templateKind: terraform
+      templatePath: ghcr.io/myorg/recipes/postgres:1.0
+---
+apiVersion: ryobi/v1
+kind: Application
+metadata:
+  name: my-app
+  environment: dev
+resources:
+  - name: database
+    type: Applications.Datastores/postgresDatabases
+    recipe: default</code></pre>
+
+    <h2>Field Reference</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>apiVersion</code></td><td>string</td><td>Yes</td><td>Must be <code>ryobi/v1</code></td></tr>
+        <tr><td><code>kind</code></td><td>string</td><td>Yes</td><td><code>Application</code> or <code>Environment</code></td></tr>
+        <tr><td><code>metadata.name</code></td><td>string</td><td>Yes</td><td>Unique resource name</td></tr>
+        <tr><td><code>metadata.environment</code></td><td>string</td><td>App only</td><td>Target environment</td></tr>
+        <tr><td><code>resources[].name</code></td><td>string</td><td>Yes</td><td>Resource name within the app</td></tr>
+        <tr><td><code>resources[].type</code></td><td>string</td><td>Yes</td><td>Resource type matching recipe registry</td></tr>
+        <tr><td><code>resources[].recipe</code></td><td>string</td><td>Yes</td><td>Recipe name registered in the environment</td></tr>
+        <tr><td><code>resources[].parameters</code></td><td>map</td><td>No</td><td>Override recipe default parameters</td></tr>
+        <tr><td><code>resources[].connections</code></td><td>list</td><td>No</td><td>References to other resource outputs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="footer">
+    <ul class="footer-links">
+      <li><a href="https://github.com/ryobi-project/ryobi">GitHub</a></li>
+      <li><a href="https://github.com/ryobi-project/ryobi/issues">Issues</a></li>
+    </ul>
+    <p>&copy; 2026 The Ryobi Authors. Released under the Apache 2.0 License.</p>
+  </footer>
+</main>
+
+</body>
+</html>

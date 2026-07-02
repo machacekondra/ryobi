@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Environments - Ryobi Docs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a href="../index.html" class="topnav-brand">
+    <svg viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#2563eb"/><path d="M7 8h6l4 6-4 6H7l4-6L7 8z" fill="#fff"/><path d="M14 8h6l-4 6 4 6h-6l-4-6 4-6z" fill="#93c5fd"/></svg>
+    Ryobi Docs
+  </a>
+  <ul class="topnav-links">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="../reference/cli.html">Reference</a></li>
+  </ul>
+</nav>
+<aside class="sidebar">
+  <nav><ul class="sidebar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li class="sidebar-section">Getting Started</li>
+    <li><a href="../getting-started/quickstart.html">Quick Start</a></li>
+    <li><a href="../getting-started/installation.html">Installation</a></li>
+    <li class="sidebar-section">Concepts</li>
+    <li><a href="../concepts/overview.html">Architecture Overview</a></li>
+    <li><a href="../concepts/environments.html">Environments</a></li>
+    <li><a href="../concepts/applications.html">Applications</a></li>
+    <li><a href="../concepts/recipes.html">Recipes</a></li>
+    <li><a href="../concepts/resources.html">Resources</a></li>
+    <li class="sidebar-section">Guides</li>
+    <li><a href="../guides/deploy-app.html">Deploy an Application</a></li>
+    <li><a href="../guides/create-recipe.html">Create a Recipe</a></li>
+    <li><a href="../guides/manage-environments.html" class="active">Manage Environments</a></li>
+    <li><a href="../guides/terraform-state.html">Terraform State</a></li>
+    <li class="sidebar-section">Reference</li>
+    <li><a href="../reference/cli.html">CLI Commands</a></li>
+    <li><a href="../reference/api.html">API Reference</a></li>
+    <li><a href="../reference/yaml-schema.html">YAML Schema</a></li>
+    <li><a href="../reference/configuration.html">Configuration</a></li>
+  </ul></nav>
+</aside>
+<main class="main">
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Home</a> <span>/</span>
+      <a href="#">Guides</a> <span>/</span> Manage Environments
+    </div>
+    <div class="page-header"><h1>Manage Environments</h1></div>
+    <h2>List Environments</h2><pre><code>ryobi env list</code></pre><h2>View Details</h2><pre><code>ryobi env show dev</code></pre><h2>View Recipes</h2><pre><code>ryobi recipe list -e dev</code></pre><h2>Delete</h2><pre><code>ryobi env delete dev</code></pre><div class="callout"><div class="callout-title">Note</div><p>You cannot delete an environment that is referenced by existing applications. Delete all applications first.</p></div>
+  </div>
+  <footer class="footer">
+    <p>&copy; 2026 The Ryobi Authors. Released under the Apache 2.0 License.</p>
+  </footer>
+</main>
+</body>
+</html>
