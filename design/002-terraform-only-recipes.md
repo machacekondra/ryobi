@@ -59,10 +59,38 @@ Recipe parameters come from two sources with resource-level parameters taking pr
 1. Environment recipe definition (`recipes.<type>.<name>.parameters`)
 2. Application resource definition (`resources[].parameters`)
 
+### Provider Configuration
+
+The executor auto-configures Terraform providers based on the environment:
+
+| Environment Provider | Terraform Provider | Configuration Source |
+|---------------------|-------------------|---------------------|
+| `azure` | `azurerm` | Subscription ID from scope + `recipeConfig.terraform.providers.azurerm` |
+| `aws` | `aws` | Region from scope + `recipeConfig.terraform.providers.aws` |
+| `kubernetes` | `kubernetes` | `recipeConfig.terraform.providers.kubernetes` (e.g. `config_path`) |
+
+### Template Path Resolution
+
+The `templatePath` in a recipe definition can be:
+- **Local path** (`./recipes/kubernetes-pod`) — resolved to absolute path at execution time
+- **Registry** (`ghcr.io/myorg/recipes/postgres:1.0`) — used as-is
+- **Git URL** — used as-is
+- **HTTP URL** — used as-is
+
+### Predefined Recipes
+
+Ryobi ships with built-in recipes in the `recipes/` directory:
+
+| Recipe | Resource Type | Description |
+|--------|--------------|-------------|
+| `kubernetes-pod` | `Ryobi.Compute/containers` | Kubernetes Deployment |
+| `kubevirt-vm` | `Ryobi.Compute/virtualMachines` | KubeVirt VirtualMachine |
+
 ## Consequences
 
 - Simpler codebase: one driver instead of two
-- Full Terraform provider ecosystem available
+- Full Terraform provider ecosystem available (Azure, AWS, Kubernetes, etc.)
 - Any infrastructure that Terraform can manage is deployable
+- Predefined recipes provide out-of-the-box support for common resource types
 - Trade-off: no Bicep support for Azure-native teams
 - Trade-off: no direct container runtime (everything goes through Terraform)

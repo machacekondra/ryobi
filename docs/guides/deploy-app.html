@@ -55,21 +55,32 @@ kind: Environment
 metadata:
   name: dev
 providers:
-  azure:
-    scope: /subscriptions/xxx/resourceGroups/my-rg
+  kubernetes:
+    scope: default
 recipes:
-  Applications.Datastores/postgresDatabases:
-    default:
+  Ryobi.Compute/containers:
+    kubernetes:
       templateKind: terraform
-      templatePath: ghcr.io/myorg/recipes/postgres:1.0</code></pre><h2>2. Define Your Application</h2><pre><code>apiVersion: ryobi/v1
+      templatePath: ./recipes/kubernetes-pod
+recipeConfig:
+  terraform:
+    providers:
+      kubernetes:
+        config_path: "~/.kube/config"</code></pre><h2>2. Define Your Application</h2><pre><code>apiVersion: ryobi/v1
 kind: Application
 metadata:
   name: my-app
   environment: dev
 resources:
-  - name: database
-    type: Applications.Datastores/postgresDatabases
-    recipe: default</code></pre><h2>3. Deploy</h2><pre><code>ryobi deploy env.yaml
+  - name: nginx
+    type: Ryobi.Compute/containers
+    recipe: kubernetes
+    parameters:
+      name: nginx
+      image: nginx:1.25-alpine
+      replicas: 2
+      ports:
+        - container_port: 80</code></pre><h2>3. Deploy</h2><pre><code>ryobi deploy env.yaml
 ryobi deploy app.yaml</code></pre><h2>4. Monitor</h2><pre><code>ryobi app status my-app</code></pre>
   </div>
   <footer class="footer">

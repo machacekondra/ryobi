@@ -66,7 +66,11 @@ output "connectionString" {
   Applications.Datastores/postgresDatabases:
     default:
       templateKind: terraform
-      templatePath: ghcr.io/myorg/recipes/postgres:1.0</code></pre><p>The <code>templatePath</code> can be any valid Terraform module source: OCI registry, Git URL, HTTP URL, or local path.</p>
+      templatePath: ghcr.io/myorg/recipes/postgres:1.0</code></pre><p>The <code>templatePath</code> can be any valid Terraform module source: OCI registry, Git URL, HTTP URL, or local path. Local paths (starting with <code>./</code> or <code>../</code>) are automatically resolved to absolute paths.</p><h2>Predefined Recipes</h2><p>Ryobi ships with built-in recipes in the <code>recipes/</code> directory that you can use as starting points:</p><table><thead><tr><th>Recipe</th><th>Resource Type</th><th>Description</th></tr></thead><tbody><tr><td><code>recipes/kubernetes-pod</code></td><td><code>Ryobi.Compute/containers</code></td><td>Kubernetes Deployment with replicas, ports, env vars</td></tr><tr><td><code>recipes/kubevirt-vm</code></td><td><code>Ryobi.Compute/virtualMachines</code></td><td>KubeVirt VM with boot disk, cloud-init, networking</td></tr></tbody></table><p>To use a predefined recipe, reference it with a local path in your environment:</p><pre><code>recipes:
+  Ryobi.Compute/containers:
+    kubernetes:
+      templateKind: terraform
+      templatePath: ./recipes/kubernetes-pod</code></pre>
   </div>
   <footer class="footer">
     <p>&copy; 2026 The Ryobi Authors. Released under the Apache 2.0 License.</p>

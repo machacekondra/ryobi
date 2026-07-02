@@ -88,20 +88,25 @@ cp dist/ryobi /usr/local/bin/</code></pre>
 # ryobi version 0.1.0-dev (commit: abc1234, channel: dev)</code></pre>
 
     <h2>Step 3: Create an Environment</h2>
-    <p>Create a YAML file that defines your environment with cloud providers and recipes:</p>
+    <p>Create a YAML file that defines your environment with a Kubernetes provider and the built-in container recipe:</p>
     <pre><code># env.yaml
 apiVersion: ryobi/v1
 kind: Environment
 metadata:
   name: dev
 providers:
-  azure:
-    scope: /subscriptions/&lt;your-sub-id&gt;/resourceGroups/&lt;your-rg&gt;
+  kubernetes:
+    scope: default
 recipes:
-  Applications.Datastores/postgresDatabases:
-    default:
+  Ryobi.Compute/containers:
+    kubernetes:
       templateKind: terraform
-      templatePath: ghcr.io/myorg/recipes/postgres:1.0</code></pre>
+      templatePath: ./recipes/kubernetes-pod
+recipeConfig:
+  terraform:
+    providers:
+      kubernetes:
+        config_path: "~/.kube/config"</code></pre>
 
     <h2>Step 4: Define Your Application</h2>
     <p>Create an application YAML that references your environment and recipes:</p>
@@ -112,16 +117,22 @@ metadata:
   name: my-app
   environment: dev
 resources:
-  - name: database
-    type: Applications.Datastores/postgresDatabases
-    recipe: default</code></pre>
+  - name: nginx
+    type: Ryobi.Compute/containers
+    recipe: kubernetes
+    parameters:
+      name: nginx
+      image: nginx:1.25-alpine
+      replicas: 2
+      ports:
+        - container_port: 80</code></pre>
 
     <h2>Step 5: Deploy</h2>
     <p>Deploy everything with a single command:</p>
     <pre><code>ryobi deploy env.yaml
 ryobi deploy app.yaml</code></pre>
     <p>Or combine both in a single multi-document YAML file:</p>
-    <pre><code>ryobi deploy examples/app.yaml</code></pre>
+    <pre><code>ryobi deploy examples/container-nginx.yaml</code></pre>
 
     <h2>Step 6: Check Status</h2>
     <pre><code># List environments
@@ -131,7 +142,7 @@ ryobi env list
 ryobi app status my-app
 
 # View resource details
-ryobi resource show database --app my-app</code></pre>
+ryobi resource show nginx --app my-app</code></pre>
 
     <div class="callout">
       <div class="callout-title">What's next?</div>

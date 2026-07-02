@@ -86,7 +86,7 @@ All server configuration is via environment variables:
 |----------|---------|-------------|
 | `RYOBI_ADDRESS` | `0.0.0.0:9000` | Listen address |
 | `RYOBI_DB_URL` | — | PostgreSQL URL |
-| `RYOBI_TF_ROOT_DIR` | `/var/lib/ryobi/terraform` | Terraform working directory |
+| `RYOBI_TF_ROOT_DIR` | `~/.ryobi/terraform` | Terraform working directory |
 | `TERRAFORM_PATH` | `terraform` | Path to terraform binary |
 
 No YAML config file is needed for the server. This keeps containerized deployment simple.

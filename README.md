@@ -10,6 +10,7 @@ Ryobi provides a simple YAML-based workflow for defining applications and their 
 - **YAML Definitions** — Declare your entire application stack in simple, human-readable YAML.
 - **Multi-Cloud** — Deploy to Azure, AWS, or any cloud supported by Terraform providers.
 - **Lightweight** — Single binary server with PostgreSQL. No Kubernetes required.
+- **Predefined Recipes** — Ships with ready-to-use recipes for Kubernetes Deployments (`Ryobi.Compute/containers`) and KubeVirt VMs (`Ryobi.Compute/virtualMachines`).
 
 ## Architecture
 
@@ -131,7 +132,7 @@ examples/                 Sample YAML definitions
 |----------|---------|-------------|
 | `RYOBI_ADDRESS` | `0.0.0.0:9000` | Listen address |
 | `RYOBI_DB_URL` | — | PostgreSQL URL (enables PG state backend) |
-| `RYOBI_TF_ROOT_DIR` | `/var/lib/ryobi/terraform` | Terraform working directory |
+| `RYOBI_TF_ROOT_DIR` | `~/.ryobi/terraform` | Terraform working directory |
 | `TERRAFORM_PATH` | `terraform` | Path to terraform binary |
 
 ### CLI

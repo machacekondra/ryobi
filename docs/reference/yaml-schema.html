@@ -77,20 +77,26 @@ providers:                   # Optional. Cloud provider scopes
     scope: &lt;string&gt;         # Azure scope (subscription + resource group)
   aws:
     scope: &lt;string&gt;         # AWS scope (account + region)
+  kubernetes:
+    scope: &lt;string&gt;         # Kubernetes scope (namespace)
 
 recipes:                     # Optional. Recipe registry
-  &lt;resourceType&gt;:           # e.g. "Applications.Datastores/postgresDatabases"
-    &lt;recipeName&gt;:           # e.g. "default"
+  &lt;resourceType&gt;:           # e.g. "Ryobi.Compute/containers"
+    &lt;recipeName&gt;:           # e.g. "kubernetes"
       templateKind: terraform  # Required. Must be "terraform"
-      templatePath: &lt;string&gt;  # Required. Terraform module source
+      templatePath: &lt;string&gt;  # Required. Terraform module source (local, registry, git)
       parameters:              # Optional. Default parameters
         &lt;key&gt;: &lt;value&gt;
 
 recipeConfig:                # Optional. Global recipe configuration
   terraform:
-    providers:               # Provider-level overrides
-      &lt;providerName&gt;:
-        &lt;key&gt;: &lt;value&gt;</code></pre>
+    providers:               # Provider-level configuration
+      azurerm:               # Azure provider
+        subscription_id: &lt;string&gt;
+      aws:                   # AWS provider
+        region: &lt;string&gt;
+      kubernetes:            # Kubernetes provider
+        config_path: &lt;string&gt;  # e.g. "~/.kube/config"</code></pre>
 
     <h2>Application</h2>
     <p>An Application groups resources that are deployed together into an environment.</p>
