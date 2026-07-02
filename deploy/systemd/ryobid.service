@@ -1,0 +1,18 @@
+[Unit]
+Description=Ryobi Application Platform Server
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=ryobi
+Group=ryobi
+Environment=RYOBI_ADDRESS=0.0.0.0:9000
+Environment=RYOBI_TF_ROOT_DIR=/var/lib/ryobi/terraform
+EnvironmentFile=-/etc/ryobi/ryobid.env
+ExecStart=/usr/local/bin/ryobid
+Restart=always
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,50 @@
+apiVersion: ryobi/v1
+kind: Environment
+metadata:
+  name: dev
+providers:
+  azure:
+    scope: /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg
+recipes:
+  Applications.Datastores/postgresDatabases:
+    default:
+      templateKind: terraform
+      templatePath: ghcr.io/myorg/recipes/postgres:1.0
+      parameters:
+        sku: Standard_B1ms
+  Applications.Datastores/redisCaches:
+    default:
+      templateKind: terraform
+      templatePath: ghcr.io/myorg/recipes/redis:1.0
+recipeConfig:
+  terraform:
+    providers:
+      azurerm:
+        subscription_id: "00000000-0000-0000-0000-000000000000"
+---
+apiVersion: ryobi/v1
+kind: Application
+metadata:
+  name: my-webapp
+  environment: dev
+
+resources:
+  - name: postgres-db
+    type: Applications.Datastores/postgresDatabases
+    recipe: default
+
+  - name: redis-cache
+    type: Applications.Datastores/redisCaches
+    recipe: default
+    parameters:
+      sku: Standard
+
+  - name: webapp
+    type: Applications.Compute/webApps
+    recipe: azure-webapp
+    parameters:
+      sku: B1
+    connections:
+      - name: database
+        source: postgres-db
+        key: connectionString

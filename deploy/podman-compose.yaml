@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: ryobi
+      POSTGRES_PASSWORD: ${RYOBI_DB_PASSWORD:-ryobi_pass}
+      POSTGRES_DB: ryobi
+    volumes:
+      - ryobi-pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ryobi"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  ryobid:
+    build:
+      context: ..
+      dockerfile: deploy/Containerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      RYOBI_ADDRESS: "0.0.0.0:9000"
+      RYOBI_DB_URL: "postgres://ryobi:${RYOBI_DB_PASSWORD:-ryobi_pass}@postgres:5432/ryobi?sslmode=disable"
+      RYOBI_TF_ROOT_DIR: /var/lib/ryobi/terraform
+      TERRAFORM_PATH: /usr/bin/terraform
+    volumes:
+      - ryobi-data:/var/lib/ryobi
+    ports:
+      - "9000:9000"
+
+volumes:
+  ryobi-pgdata:
+  ryobi-data:

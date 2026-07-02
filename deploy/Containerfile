@@ -1,0 +1,28 @@
+FROM docker.io/library/golang:1.24-alpine AS builder
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+ARG VERSION=0.1.0-dev
+ARG COMMIT=unknown
+
+RUN CGO_ENABLED=0 go build \
+    -ldflags "-X github.com/ryobi-project/ryobi/pkg/version.Version=${VERSION} \
+              -X github.com/ryobi-project/ryobi/pkg/version.Commit=${COMMIT}" \
+    -o /ryobid ./cmd/ryobid/
+
+FROM docker.io/library/alpine:3.21
+
+RUN apk add --no-cache ca-certificates terraform
+
+RUN adduser -D -u 10001 ryobi
+USER ryobi
+
+COPY --from=builder /ryobid /usr/local/bin/ryobid
+
+EXPOSE 9000
+
+ENTRYPOINT ["ryobid"]
