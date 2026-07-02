@@ -1,0 +1,92 @@
+## Ryobi Example: Multi-VM Application
+##
+## This example deploys a web server VM and a database VM,
+## demonstrating how multiple VMs can be composed in a single application.
+##
+## Usage:
+##   ryobi deploy examples/kubevirt-multi-vm.yaml
+##   ryobi app status multi-vm-app
+
+apiVersion: ryobi/v1
+kind: Environment
+metadata:
+  name: vm-cluster
+providers:
+  kubernetes:
+    scope: default
+recipes:
+  Ryobi.Compute/virtualMachines:
+    kubevirt:
+      templateKind: terraform
+      templatePath: ./recipes/kubevirt-vm
+      parameters:
+        create_namespace: true
+        namespace: production-vms
+        network_type: masquerade
+recipeConfig:
+  terraform:
+    providers:
+      kubernetes:
+        config_path: "~/.kube/config"
+---
+apiVersion: ryobi/v1
+kind: Application
+metadata:
+  name: multi-vm-app
+  environment: vm-cluster
+
+resources:
+  - name: web-server
+    type: Ryobi.Compute/virtualMachines
+    recipe: kubevirt
+    parameters:
+      name: web-server
+      cpu_cores: 2
+      memory: 2Gi
+      disk_image: "docker://quay.io/containerdisks/ubuntu:22.04"
+      disk_size: 20Gi
+      running: true
+      cloud_init_enabled: true
+      cloud_init_user_data: |
+        #cloud-config
+        hostname: web-server
+        packages:
+          - nginx
+        runcmd:
+          - systemctl enable nginx
+          - systemctl start nginx
+      service_ports:
+        - name: http
+          port: 80
+          target_port: 80
+        - name: https
+          port: 443
+          target_port: 443
+      service_type: LoadBalancer
+
+  - name: db-server
+    type: Ryobi.Compute/virtualMachines
+    recipe: kubevirt
+    parameters:
+      name: db-server
+      cpu_cores: 4
+      memory: 8Gi
+      disk_image: "docker://quay.io/containerdisks/ubuntu:22.04"
+      disk_size: 100Gi
+      storage_class: fast-ssd
+      running: true
+      cloud_init_enabled: true
+      cloud_init_user_data: |
+        #cloud-config
+        hostname: db-server
+        packages:
+          - postgresql
+          - postgresql-contrib
+        runcmd:
+          - systemctl enable postgresql
+          - systemctl start postgresql
+      service_ports:
+        - name: postgres
+          port: 5432
+          target_port: 5432
+      service_type: ClusterIP

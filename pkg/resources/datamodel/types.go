@@ -111,3 +111,56 @@ const (
 	ApplicationResourceType = "ryobi/applications"
 	ResourceResourceType    = "ryobi/resources"
 )
+
+// Well-known resource type identifiers for recipes.
+const (
+	ResourceTypeVirtualMachine = "Ryobi.Compute/virtualMachines"
+)
+
+// VirtualMachineProperties holds VM-specific configuration passed as recipe parameters.
+// This serves as documentation for the expected parameter schema when using
+// the Ryobi.Compute/virtualMachines resource type with the kubevirt-vm recipe.
+type VirtualMachineProperties struct {
+	// Name of the virtual machine
+	Name string `json:"name"`
+
+	// Namespace for the VM (default: "default")
+	Namespace string `json:"namespace,omitempty"`
+
+	// CPU configuration
+	CPUCores   int `json:"cpu_cores,omitempty"`
+	CPUSockets int `json:"cpu_sockets,omitempty"`
+	CPUThreads int `json:"cpu_threads,omitempty"`
+
+	// Memory request (e.g. "1Gi", "512Mi")
+	Memory      string `json:"memory,omitempty"`
+	MemoryLimit string `json:"memory_limit,omitempty"`
+
+	// Disk image from container registry (e.g. "docker://quay.io/containerdisks/fedora:latest")
+	DiskImage      string `json:"disk_image,omitempty"`
+	DiskSize       string `json:"disk_size,omitempty"`
+	DiskBus        string `json:"disk_bus,omitempty"`
+	StorageClass   string `json:"storage_class,omitempty"`
+
+	// Network type: "masquerade" or "bridge"
+	NetworkType string `json:"network_type,omitempty"`
+
+	// Cloud-init configuration
+	CloudInitEnabled  bool   `json:"cloud_init_enabled,omitempty"`
+	CloudInitUserData string `json:"cloud_init_user_data,omitempty"`
+
+	// Service exposure
+	ServicePorts []ServicePort `json:"service_ports,omitempty"`
+	ServiceType  string        `json:"service_type,omitempty"`
+
+	// Whether the VM should be started immediately
+	Running bool `json:"running,omitempty"`
+}
+
+// ServicePort defines a port to expose via a Kubernetes Service.
+type ServicePort struct {
+	Name       string `json:"name"`
+	Port       int    `json:"port"`
+	TargetPort int    `json:"target_port"`
+	Protocol   string `json:"protocol,omitempty"`
+}
