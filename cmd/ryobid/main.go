@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/go-logr/logr"
@@ -58,7 +59,11 @@ func main() {
 	}
 	tfRootDir := os.Getenv("RYOBI_TF_ROOT_DIR")
 	if tfRootDir == "" {
-		tfRootDir = "/var/lib/ryobi/terraform"
+		home, err := os.UserHomeDir()
+		if err != nil {
+			home = os.TempDir()
+		}
+		tfRootDir = filepath.Join(home, ".ryobi", "terraform")
 	}
 	var stateBackend backends.Backend
 	if dbURL := os.Getenv("RYOBI_DB_URL"); dbURL != "" {

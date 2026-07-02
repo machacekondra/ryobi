@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -54,10 +55,11 @@ func (e *executor) Deploy(ctx context.Context, options Options) (*tfjson.State, 
 		return nil, fmt.Errorf("failed to create terraform executor: %w", err)
 	}
 
-	// Set environment variables
-	envVars := e.buildEnvVars(options)
-	if err := tf.SetEnv(envVars); err != nil {
-		return nil, fmt.Errorf("failed to set environment variables: %w", err)
+	// Set environment variables (if any)
+	if envVars := e.buildEnvVars(options); len(envVars) > 0 {
+		if err := tf.SetEnv(envVars); err != nil {
+			return nil, fmt.Errorf("failed to set environment variables: %w", err)
+		}
 	}
 
 	logger.Info("Running terraform init")
@@ -103,9 +105,10 @@ func (e *executor) Delete(ctx context.Context, options Options) error {
 		return fmt.Errorf("failed to create terraform executor: %w", err)
 	}
 
-	envVars := e.buildEnvVars(options)
-	if err := tf.SetEnv(envVars); err != nil {
-		return fmt.Errorf("failed to set environment variables: %w", err)
+	if envVars := e.buildEnvVars(options); len(envVars) > 0 {
+		if err := tf.SetEnv(envVars); err != nil {
+			return fmt.Errorf("failed to set environment variables: %w", err)
+		}
 	}
 
 	logger.Info("Running terraform init")
@@ -140,9 +143,19 @@ func (e *executor) prepareWorkDir(options Options) (string, error) {
 func (e *executor) generateConfig(ctx context.Context, workDir string, options Options) error {
 	tfConfig := config.New()
 
+	// Resolve template path — convert relative paths to absolute
+	templatePath := options.EnvRecipe.TemplatePath
+	if isLocalPath(templatePath) {
+		absPath, err := filepath.Abs(templatePath)
+		if err != nil {
+			return fmt.Errorf("failed to resolve template path %q: %w", templatePath, err)
+		}
+		templatePath = absPath
+	}
+
 	// Set the module source and parameters
 	params := mergeParams(options.EnvRecipe.Parameters, options.ResourceRecipe.Parameters)
-	tfConfig.SetModule("recipe", options.EnvRecipe.TemplatePath, options.EnvRecipe.TemplateVersion, params)
+	tfConfig.SetModule("recipe", templatePath, options.EnvRecipe.TemplateVersion, params)
 
 	// Configure state backend
 	if e.backend != nil {
@@ -170,6 +183,11 @@ func (e *executor) generateConfig(ctx context.Context, workDir string, options O
 			}
 			tfConfig.AddProvider(providers.ProviderNameAWS, awsConfig)
 		}
+
+		if _, ok := options.EnvConfig.Providers["kubernetes"]; ok {
+			k8sConfig := providers.BuildKubernetesConfig(options.EnvConfig)
+			tfConfig.AddProvider("kubernetes", k8sConfig)
+		}
 	}
 
 	// Add result output to capture module outputs
@@ -180,10 +198,9 @@ func (e *executor) generateConfig(ctx context.Context, workDir string, options O
 }
 
 // buildEnvVars constructs environment variables for the Terraform process.
+// Note: TF_IN_AUTOMATION is managed by terraform-exec internally and must not be set here.
 func (e *executor) buildEnvVars(options Options) map[string]string {
-	envVars := map[string]string{
-		"TF_IN_AUTOMATION": "true",
-	}
+	envVars := map[string]string{}
 
 	// Pass through additional env vars from recipe config
 	if options.EnvConfig != nil {
@@ -206,6 +223,15 @@ func mergeParams(envParams, resourceParams map[string]any) map[string]any {
 		merged[k] = v
 	}
 	return merged
+}
+
+// isLocalPath returns true if the path refers to a local filesystem path
+// rather than a registry, git, or HTTP module source.
+func isLocalPath(path string) bool {
+	if strings.HasPrefix(path, "./") || strings.HasPrefix(path, "../") || strings.HasPrefix(path, "/") {
+		return true
+	}
+	return false
 }
 
 // sanitizeName creates a filesystem-safe name from a resource ID.

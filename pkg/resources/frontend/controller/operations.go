@@ -63,7 +63,7 @@ func (c *GenericGet) Run(ctx context.Context, w http.ResponseWriter, req *http.R
 		return v1.NewBadRequestResponse("name is required"), nil
 	}
 
-	id := c.rootScope + "/" + c.ResourceType() + "/" + name
+	id := buildID(c.rootScope, c.ResourceType(), name, req)
 
 	var resource map[string]any
 	_, err := c.GetResource(ctx, id, &resource)
@@ -145,7 +145,8 @@ func (c *GenericPut) Run(ctx context.Context, w http.ResponseWriter, req *http.R
 		return v1.NewBadRequestResponse("invalid request body: " + err.Error()), nil
 	}
 
-	id := c.rootScope + "/" + c.ResourceType() + "/" + name
+	id := buildID(c.rootScope, c.ResourceType(), name, req)
+	rootScope := buildRootScope(c.rootScope, req)
 	body["id"] = id
 	body["name"] = name
 	body["type"] = c.ResourceType()
@@ -154,7 +155,7 @@ func (c *GenericPut) Run(ctx context.Context, w http.ResponseWriter, req *http.R
 		Metadata: database.Metadata{
 			ID:           id,
 			ResourceType: c.ResourceType(),
-			RootScope:    c.rootScope,
+			RootScope:    rootScope,
 		},
 		Data: body,
 	}
@@ -188,7 +189,7 @@ func (c *GenericDelete) Run(ctx context.Context, w http.ResponseWriter, req *htt
 		return v1.NewBadRequestResponse("name is required"), nil
 	}
 
-	id := c.rootScope + "/" + c.ResourceType() + "/" + name
+	id := buildID(c.rootScope, c.ResourceType(), name, req)
 
 	err := c.DatabaseClient().Delete(ctx, id)
 	if err != nil {
@@ -199,4 +200,22 @@ func (c *GenericDelete) Run(ctx context.Context, w http.ResponseWriter, req *htt
 	}
 
 	return v1.NewNoContentResponse(), nil
+}
+
+// buildID constructs a resource ID, including application scope when present.
+func buildID(rootScope, resourceType, name string, req *http.Request) string {
+	appName := chi.URLParam(req, "appName")
+	if appName != "" {
+		return rootScope + "/ryobi/applications/" + appName + "/" + resourceType + "/" + name
+	}
+	return rootScope + "/" + resourceType + "/" + name
+}
+
+// buildRootScope returns the root scope for queries, including application scope when present.
+func buildRootScope(rootScope string, req *http.Request) string {
+	appName := chi.URLParam(req, "appName")
+	if appName != "" {
+		return rootScope + "/ryobi/applications/" + appName
+	}
+	return rootScope
 }

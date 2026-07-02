@@ -40,9 +40,13 @@ func (c *DeployResource) Run(ctx context.Context, request *async.AsyncRequest) (
 		return ctrl.OperationResult{}, fmt.Errorf("failed to deserialize resource: %w", err)
 	}
 
+	// Ensure the resource ID is set from metadata (the struct field may be empty)
+	resource.ID = obj.Metadata.ID
+
 	// Resolve the environment and recipe
 	envConfig, envRecipe, err := c.resolveRecipe(ctx, &resource)
 	if err != nil {
+		setFailed(c.db, ctx, obj, &resource, "recipe resolution failed: "+err.Error())
 		return failedResult(err), nil
 	}
 
@@ -56,10 +60,7 @@ func (c *DeployResource) Run(ctx context.Context, request *async.AsyncRequest) (
 	// Execute the recipe
 	output, err := c.engine.Execute(ctx, envConfig, envRecipe, resourceMeta)
 	if err != nil {
-		// Update resource status to failed
-		resource.Properties.Status.State = datamodel.StateFailed
-		obj.Data = &resource
-		_ = c.db.Save(ctx, obj, database.WithETag(obj.ETag))
+		setFailed(c.db, ctx, obj, &resource, "terraform execution failed: "+err.Error())
 		return failedResult(err), nil
 	}
 
@@ -172,6 +173,8 @@ func (c *DeleteResource) Run(ctx context.Context, request *async.AsyncRequest) (
 		return ctrl.OperationResult{}, fmt.Errorf("failed to deserialize resource: %w", err)
 	}
 
+	resource.ID = obj.Metadata.ID
+
 	// Resolve recipe for destruction
 	envConfig, envRecipe, err := c.resolveRecipe(ctx, &resource)
 	if err != nil {
@@ -235,6 +238,13 @@ func findSubstring(s, sub string) int {
 func isNotFound(err error) bool {
 	_, ok := err.(*database.ErrNotFound)
 	return ok
+}
+
+func setFailed(db database.Client, ctx context.Context, obj *database.Object, resource *datamodel.Resource, errMsg string) {
+	resource.Properties.Status.State = datamodel.StateFailed
+	resource.Properties.Status.Error = errMsg
+	obj.Data = resource
+	_ = db.Save(ctx, obj, database.WithETag(obj.ETag))
 }
 
 func failedResult(err error) ctrl.OperationResult {

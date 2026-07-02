@@ -92,6 +92,7 @@ type ConnectionRef struct {
 // ResourceStatus represents the status of a Terraform-managed resource.
 type ResourceStatus struct {
 	State           string         `json:"state,omitempty"`
+	Error           string         `json:"error,omitempty"`
 	Outputs         map[string]any `json:"outputs,omitempty"`
 	OutputResources []string       `json:"outputResources,omitempty"`
 }

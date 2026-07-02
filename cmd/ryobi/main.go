@@ -204,10 +204,15 @@ func deployApplication(ctx context.Context, client *connections.Client, doc *cli
 
 	if wait && len(operationURLs) > 0 {
 		output.PrintStatus("Waiting for deployments to complete...")
+		var failed bool
 		for _, url := range operationURLs {
 			if err := waitForResource(ctx, client, url); err != nil {
-				output.PrintError("Resource deployment failed: %v", err)
+				output.PrintError("%v", err)
+				failed = true
 			}
+		}
+		if failed {
+			return fmt.Errorf("application %q deployment completed with errors", doc.Metadata.Name)
 		}
 	}
 
@@ -246,7 +251,11 @@ func waitForResource(ctx context.Context, client *connections.Client, resourcePa
 		case "Succeeded":
 			return nil
 		case "Failed":
-			return fmt.Errorf("deployment failed")
+			errMsg, _ := status["error"].(string)
+			if errMsg != "" {
+				return fmt.Errorf("%s", errMsg)
+			}
+			return fmt.Errorf("deployment failed (no details available)")
 		default:
 			time.Sleep(2 * time.Second)
 		}

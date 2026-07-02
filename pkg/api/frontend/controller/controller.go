@@ -126,9 +126,16 @@ func (b *BaseController) GetResource(ctx context.Context, id string, out any) (s
 
 // SaveResource persists a resource to the data store.
 func (b *BaseController) SaveResource(ctx context.Context, id string, in any, etag string) (*database.Object, error) {
+	return b.SaveResourceWithMeta(ctx, id, b.options.ResourceType, "", in, etag)
+}
+
+// SaveResourceWithMeta persists a resource with explicit metadata.
+func (b *BaseController) SaveResourceWithMeta(ctx context.Context, id, resourceType, rootScope string, in any, etag string) (*database.Object, error) {
 	obj := &database.Object{
 		Metadata: database.Metadata{
-			ID: id,
+			ID:           id,
+			ResourceType: resourceType,
+			RootScope:    rootScope,
 		},
 		Data: in,
 	}

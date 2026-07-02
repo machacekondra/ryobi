@@ -80,12 +80,13 @@ func (c *DefaultSyncPut[T]) Run(ctx context.Context, w http.ResponseWriter, req 
 		}
 	}
 
-	// Save resource
-	saveOpts := ""
+	// Save resource with proper metadata for queries
+	saveEtag := ""
 	if !isNew {
-		saveOpts = etag
+		saveEtag = etag
 	}
-	_, err = c.SaveResource(ctx, id, newResource, saveOpts)
+	rootScope := buildRootScope(c.rootScope, req)
+	_, err = c.SaveResourceWithMeta(ctx, id, c.ResourceType(), rootScope, newResource, saveEtag)
 	if err != nil {
 		return nil, err
 	}

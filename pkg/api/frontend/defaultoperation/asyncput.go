@@ -83,12 +83,13 @@ func (c *DefaultAsyncPut[T]) Run(ctx context.Context, w http.ResponseWriter, req
 		}
 	}
 
-	// Save resource to database
-	saveOpts := ""
+	// Save resource to database with proper metadata for queries
+	saveEtag := ""
 	if !isNew {
-		saveOpts = etag
+		saveEtag = etag
 	}
-	_, err = c.SaveResource(ctx, id, newResource, saveOpts)
+	rootScope := buildRootScope(c.rootScope, req)
+	_, err = c.SaveResourceWithMeta(ctx, id, c.ResourceType(), rootScope, newResource, saveEtag)
 	if err != nil {
 		return nil, err
 	}
@@ -180,4 +181,13 @@ func buildResourceID(rootScope, resourceType, name string, req *http.Request) st
 		return rootScope + "/ryobi/applications/" + appName + "/" + resourceType + "/" + name
 	}
 	return rootScope + "/" + resourceType + "/" + name
+}
+
+// buildRootScope returns the root scope for metadata, including application scope when present.
+func buildRootScope(rootScope string, req *http.Request) string {
+	appName := chi.URLParam(req, "appName")
+	if appName != "" {
+		return rootScope + "/ryobi/applications/" + appName
+	}
+	return rootScope
 }
