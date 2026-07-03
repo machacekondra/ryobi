@@ -2,15 +2,16 @@ package placement
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
-// Engine selects the best environment for a resource based on constraints and preferences.
+// Engine selects the best environment for a resource based on administrator-defined placement rules.
 type Engine interface {
-	Place(request PlacementRequest, environments []EnvironmentInfo) (*PlacementResult, error)
+	Place(request PlacementRequest, rules []PlacementRule, environments []EnvironmentInfo) (*PlacementResult, error)
 }
 
-// DefaultEngine implements the placement Engine with constraint filtering + preference scoring.
+// DefaultEngine implements the placement Engine.
 type DefaultEngine struct{}
 
 // NewEngine creates a new DefaultEngine.
@@ -18,20 +19,49 @@ func NewEngine() Engine {
 	return &DefaultEngine{}
 }
 
-func (e *DefaultEngine) Place(request PlacementRequest, environments []EnvironmentInfo) (*PlacementResult, error) {
-	// Step 1: Filter by hard constraints
-	candidates := e.filterByConstraints(request, environments)
-	if len(candidates) == 0 {
-		return nil, fmt.Errorf("no environment matches constraints for resource type %q", request.ResourceType)
+func (e *DefaultEngine) Place(request PlacementRequest, rules []PlacementRule, environments []EnvironmentInfo) (*PlacementResult, error) {
+	// Find matching rules for this resource type, sorted by priority (highest first)
+	matchingRules := e.findMatchingRules(request.ResourceType, rules)
+	if len(matchingRules) == 0 {
+		// No placement rules — fall back to any connected environment that supports the type
+		return e.placeFallback(request.ResourceType, environments)
 	}
 
-	// Step 2: Score by preferences
-	best := e.scoreAndSelect(request, candidates)
+	// Try each rule in priority order until one produces a result
+	for _, rule := range matchingRules {
+		result, err := e.placeWithRule(request.ResourceType, &rule, environments)
+		if err == nil {
+			result.RuleName = rule.Name
+			return result, nil
+		}
+	}
 
-	// Step 3: Find the recipe for this resource type
-	recipeName, ok := best.RecipeTypes[request.ResourceType]
+	return nil, fmt.Errorf("no environment matches placement rules for resource type %q", request.ResourceType)
+}
+
+func (e *DefaultEngine) findMatchingRules(resourceType string, rules []PlacementRule) []PlacementRule {
+	var matched []PlacementRule
+	for _, rule := range rules {
+		if strings.EqualFold(rule.Properties.ResourceType, resourceType) {
+			matched = append(matched, rule)
+		}
+	}
+	sort.Slice(matched, func(i, j int) bool {
+		return matched[i].Properties.Priority > matched[j].Properties.Priority
+	})
+	return matched
+}
+
+func (e *DefaultEngine) placeWithRule(resourceType string, rule *PlacementRule, environments []EnvironmentInfo) (*PlacementResult, error) {
+	candidates := filterByConstraints(resourceType, rule.Properties.Constraints, environments)
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("no candidates for rule %q", rule.Name)
+	}
+
+	best := scoreAndSelect(rule.Properties.Preferences, candidates)
+	recipeName, ok := best.RecipeTypes[resourceType]
 	if !ok {
-		return nil, fmt.Errorf("environment %q has no recipe for resource type %q", best.Name, request.ResourceType)
+		return nil, fmt.Errorf("environment %q has no recipe for %q", best.Name, resourceType)
 	}
 
 	return &PlacementResult{
@@ -40,65 +70,65 @@ func (e *DefaultEngine) Place(request PlacementRequest, environments []Environme
 	}, nil
 }
 
-// filterByConstraints removes environments that don't meet hard requirements.
-func (e *DefaultEngine) filterByConstraints(request PlacementRequest, environments []EnvironmentInfo) []EnvironmentInfo {
-	var result []EnvironmentInfo
+func (e *DefaultEngine) placeFallback(resourceType string, environments []EnvironmentInfo) (*PlacementResult, error) {
+	candidates := filterByConstraints(resourceType, Constraints{}, environments)
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("no connected environment supports resource type %q", resourceType)
+	}
 
+	best := scoreAndSelect(Preferences{}, candidates)
+	recipeName, ok := best.RecipeTypes[resourceType]
+	if !ok {
+		return nil, fmt.Errorf("environment %q has no recipe for %q", best.Name, resourceType)
+	}
+
+	return &PlacementResult{
+		EnvironmentName: best.Name,
+		RecipeName:      recipeName,
+	}, nil
+}
+
+func filterByConstraints(resourceType string, constraints Constraints, environments []EnvironmentInfo) []EnvironmentInfo {
+	var result []EnvironmentInfo
 	for _, env := range environments {
 		if !env.Connected {
 			continue
 		}
-
-		// Must support the resource type
-		if _, ok := env.RecipeTypes[request.ResourceType]; !ok {
+		if _, ok := env.RecipeTypes[resourceType]; !ok {
 			continue
 		}
-
-		c := request.Constraints
-
-		// Region constraint
-		if c.Region != "" && !strings.EqualFold(env.Static.Region, c.Region) {
+		if constraints.Region != "" && !strings.EqualFold(env.Static.Region, constraints.Region) {
 			continue
 		}
-
-		// Sovereignty constraint
-		if c.Sovereignty != "" && !strings.EqualFold(env.Static.Sovereignty, c.Sovereignty) {
+		if constraints.Sovereignty != "" && !strings.EqualFold(env.Static.Sovereignty, constraints.Sovereignty) {
 			continue
 		}
-
-		// Required capabilities
-		if len(c.Capabilities) > 0 && !hasAllCapabilities(env.Static.Capabilities, c.Capabilities) {
+		if len(constraints.Capabilities) > 0 && !hasAllCapabilities(env.Static.Capabilities, constraints.Capabilities) {
 			continue
 		}
-
 		result = append(result, env)
 	}
-
 	return result
 }
 
-// scoreAndSelect ranks candidates by preferences and returns the best one.
-func (e *DefaultEngine) scoreAndSelect(request PlacementRequest, candidates []EnvironmentInfo) *EnvironmentInfo {
+func scoreAndSelect(prefs Preferences, candidates []EnvironmentInfo) *EnvironmentInfo {
 	if len(candidates) == 1 {
 		return &candidates[0]
 	}
 
 	bestIdx := 0
 	bestScore := -1.0
-
 	for i := range candidates {
-		score := e.computeScore(request.Preferences, &candidates[i])
+		score := computeScore(prefs, &candidates[i])
 		if score > bestScore {
 			bestScore = score
 			bestIdx = i
 		}
 	}
-
 	return &candidates[bestIdx]
 }
 
-// computeScore calculates a weighted score for an environment based on preferences.
-func (e *DefaultEngine) computeScore(prefs Preferences, env *EnvironmentInfo) float64 {
+func computeScore(prefs Preferences, env *EnvironmentInfo) float64 {
 	score := 0.0
 	weights := 0.0
 
@@ -106,17 +136,13 @@ func (e *DefaultEngine) computeScore(prefs Preferences, env *EnvironmentInfo) fl
 		score += scoreCost(env)
 		weights++
 	}
-
 	if prefs.AvailableResources == "maximize" {
 		score += scoreAvailableResources(env)
 		weights++
 	}
-
-	// Default: score by running resources (prefer less busy)
 	if weights == 0 {
 		return scoreRunningResources(env)
 	}
-
 	return score / weights
 }
 

@@ -89,4 +89,12 @@ func SetupRoutes(router *gateway.Router, opts ctrl.Options) {
 		Put:    resctrl.NewGenericPutFactory(rootScope),
 		Delete: resctrl.NewGenericDeleteFactory(rootScope),
 	})
+
+	// Placements: admin-defined placement rules (sync CRUD)
+	router.RegisterResourceRoutes("/api/v1/placements", "ryobi/placements", gateway.ResourceFactories{
+		List:   resctrl.NewGenericListFactory(rootScope),
+		Get:    resctrl.NewGenericGetFactory(rootScope),
+		Put:    resctrl.NewGenericPutFactory(rootScope),
+		Delete: resctrl.NewGenericDeleteFactory(rootScope),
+	})
 }

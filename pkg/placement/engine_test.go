@@ -4,140 +4,138 @@ import (
 	"testing"
 )
 
-func TestPlace_ConstraintRegion(t *testing.T) {
-	engine := NewEngine()
+var testEnvs = []EnvironmentInfo{
+	{Name: "us-cheap", Connected: true, Static: StaticCapabilities{Region: "us-east-1", Sovereignty: "us", CostPerHour: 0.30, Capabilities: []string{"standard", "gpu"}}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+	{Name: "eu-expensive", Connected: true, Static: StaticCapabilities{Region: "eu-west-1", Sovereignty: "eu", CostPerHour: 0.80}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+	{Name: "eu-cheap", Connected: true, Static: StaticCapabilities{Region: "eu-west-1", Sovereignty: "eu", CostPerHour: 0.40}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+}
 
-	envs := []EnvironmentInfo{
-		{Name: "us-env", Connected: true, Static: StaticCapabilities{Region: "us-east-1"}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
-		{Name: "eu-env", Connected: true, Static: StaticCapabilities{Region: "eu-west-1"}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+func TestPlace_RuleConstraintRegion(t *testing.T) {
+	engine := NewEngine()
+	rules := []PlacementRule{
+		{Name: "eu-only", Properties: PlacementRuleProperties{ResourceType: "Ryobi.Compute/containers", Constraints: Constraints{Region: "eu-west-1"}}},
 	}
 
-	result, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/containers",
-		Constraints:  Constraints{Region: "eu-west-1"},
-	}, envs)
-
+	result, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, rules, testEnvs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.EnvironmentName != "eu-env" {
-		t.Errorf("expected eu-env, got %s", result.EnvironmentName)
+	if result.EnvironmentName != "eu-expensive" && result.EnvironmentName != "eu-cheap" {
+		t.Errorf("expected an EU env, got %s", result.EnvironmentName)
+	}
+	if result.RuleName != "eu-only" {
+		t.Errorf("expected rule eu-only, got %s", result.RuleName)
 	}
 }
 
-func TestPlace_ConstraintSovereignty(t *testing.T) {
+func TestPlace_RuleConstraintRegionAndPreferCost(t *testing.T) {
 	engine := NewEngine()
-
-	envs := []EnvironmentInfo{
-		{Name: "us-env", Connected: true, Static: StaticCapabilities{Sovereignty: "us"}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
-		{Name: "eu-env", Connected: true, Static: StaticCapabilities{Sovereignty: "eu"}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+	rules := []PlacementRule{
+		{Name: "eu-cheapest", Properties: PlacementRuleProperties{
+			ResourceType: "Ryobi.Compute/containers",
+			Constraints:  Constraints{Region: "eu-west-1"},
+			Preferences:  Preferences{Cost: "minimize"},
+		}},
 	}
 
-	result, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/containers",
-		Constraints:  Constraints{Sovereignty: "eu"},
-	}, envs)
-
+	result, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, rules, testEnvs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.EnvironmentName != "eu-env" {
-		t.Errorf("expected eu-env, got %s", result.EnvironmentName)
+	if result.EnvironmentName != "eu-cheap" {
+		t.Errorf("expected eu-cheap, got %s", result.EnvironmentName)
 	}
 }
 
-func TestPlace_ConstraintCapabilities(t *testing.T) {
+func TestPlace_RuleConstraintSovereignty(t *testing.T) {
 	engine := NewEngine()
-
-	envs := []EnvironmentInfo{
-		{Name: "basic", Connected: true, Static: StaticCapabilities{Capabilities: []string{"standard"}}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
-		{Name: "gpu", Connected: true, Static: StaticCapabilities{Capabilities: []string{"standard", "gpu"}}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+	rules := []PlacementRule{
+		{Name: "us-sovereign", Properties: PlacementRuleProperties{
+			ResourceType: "Ryobi.Compute/containers",
+			Constraints:  Constraints{Sovereignty: "us"},
+		}},
 	}
 
-	result, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/containers",
-		Constraints:  Constraints{Capabilities: []string{"gpu"}},
-	}, envs)
-
+	result, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, rules, testEnvs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.EnvironmentName != "gpu" {
-		t.Errorf("expected gpu, got %s", result.EnvironmentName)
+	if result.EnvironmentName != "us-cheap" {
+		t.Errorf("expected us-cheap, got %s", result.EnvironmentName)
 	}
 }
 
-func TestPlace_PreferCheapest(t *testing.T) {
+func TestPlace_RuleConstraintCapabilities(t *testing.T) {
 	engine := NewEngine()
-
-	envs := []EnvironmentInfo{
-		{Name: "expensive", Connected: true, Static: StaticCapabilities{CostPerHour: 2.0}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
-		{Name: "cheap", Connected: true, Static: StaticCapabilities{CostPerHour: 0.1}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+	rules := []PlacementRule{
+		{Name: "gpu-required", Properties: PlacementRuleProperties{
+			ResourceType: "Ryobi.Compute/containers",
+			Constraints:  Constraints{Capabilities: []string{"gpu"}},
+		}},
 	}
 
-	result, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/containers",
-		Preferences:  Preferences{Cost: "minimize"},
-	}, envs)
-
+	result, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, rules, testEnvs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.EnvironmentName != "cheap" {
-		t.Errorf("expected cheap, got %s", result.EnvironmentName)
+	if result.EnvironmentName != "us-cheap" {
+		t.Errorf("expected us-cheap (only one with gpu), got %s", result.EnvironmentName)
 	}
 }
 
-func TestPlace_PreferMostResources(t *testing.T) {
+func TestPlace_RulePriority(t *testing.T) {
 	engine := NewEngine()
-
-	envs := []EnvironmentInfo{
-		{Name: "busy", Connected: true, Dynamic: DynamicCapabilities{AvailableCPUMillicores: 1000, AvailableMemoryMB: 2048}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
-		{Name: "idle", Connected: true, Dynamic: DynamicCapabilities{AvailableCPUMillicores: 32000, AvailableMemoryMB: 65536}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+	rules := []PlacementRule{
+		{Name: "low-priority", Properties: PlacementRuleProperties{ResourceType: "Ryobi.Compute/containers", Priority: 1, Constraints: Constraints{Region: "us-east-1"}}},
+		{Name: "high-priority", Properties: PlacementRuleProperties{ResourceType: "Ryobi.Compute/containers", Priority: 10, Constraints: Constraints{Region: "eu-west-1"}, Preferences: Preferences{Cost: "minimize"}}},
 	}
 
-	result, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/containers",
-		Preferences:  Preferences{AvailableResources: "maximize"},
-	}, envs)
-
+	result, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, rules, testEnvs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if result.EnvironmentName != "idle" {
-		t.Errorf("expected idle, got %s", result.EnvironmentName)
+	// High priority rule (eu, cheapest) should win
+	if result.EnvironmentName != "eu-cheap" {
+		t.Errorf("expected eu-cheap (high priority rule), got %s", result.EnvironmentName)
+	}
+	if result.RuleName != "high-priority" {
+		t.Errorf("expected rule high-priority, got %s", result.RuleName)
 	}
 }
 
-func TestPlace_NoMatchingEnvironment(t *testing.T) {
+func TestPlace_NoRulesFallback(t *testing.T) {
 	engine := NewEngine()
 
-	envs := []EnvironmentInfo{
-		{Name: "us-env", Connected: true, Static: StaticCapabilities{Region: "us-east-1"}, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
+	result, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, nil, testEnvs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should pick any connected env — no error
+	if result.EnvironmentName == "" {
+		t.Error("expected a result")
+	}
+}
+
+func TestPlace_NoMatchingRule(t *testing.T) {
+	engine := NewEngine()
+	rules := []PlacementRule{
+		{Name: "asia-only", Properties: PlacementRuleProperties{ResourceType: "Ryobi.Compute/containers", Constraints: Constraints{Region: "ap-southeast-1"}}},
 	}
 
-	_, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/containers",
-		Constraints:  Constraints{Region: "eu-west-1"},
-	}, envs)
-
+	_, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, rules, testEnvs)
 	if err == nil {
 		t.Error("expected error for no matching environment")
 	}
 }
 
-func TestPlace_DisconnectedEnvSkipped(t *testing.T) {
+func TestPlace_DisconnectedSkipped(t *testing.T) {
 	engine := NewEngine()
-
 	envs := []EnvironmentInfo{
 		{Name: "offline", Connected: false, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
 		{Name: "online", Connected: true, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
 	}
 
-	result, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/containers",
-	}, envs)
-
+	result, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/containers"}, nil, envs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -149,14 +147,7 @@ func TestPlace_DisconnectedEnvSkipped(t *testing.T) {
 func TestPlace_UnsupportedResourceType(t *testing.T) {
 	engine := NewEngine()
 
-	envs := []EnvironmentInfo{
-		{Name: "env1", Connected: true, RecipeTypes: map[string]string{"Ryobi.Compute/containers": "k8s"}},
-	}
-
-	_, err := engine.Place(PlacementRequest{
-		ResourceType: "Ryobi.Compute/virtualMachines",
-	}, envs)
-
+	_, err := engine.Place(PlacementRequest{ResourceType: "Ryobi.Compute/virtualMachines"}, nil, testEnvs)
 	if err == nil {
 		t.Error("expected error for unsupported resource type")
 	}

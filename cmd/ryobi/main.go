@@ -32,6 +32,7 @@ func main() {
 	rootCmd.AddCommand(newAppCmd())
 	rootCmd.AddCommand(newResourceCmd())
 	rootCmd.AddCommand(newRecipeCmd())
+	rootCmd.AddCommand(newPlacementCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -177,9 +178,6 @@ func deployApplication(ctx context.Context, client *connections.Client, doc *cli
 		if res.Recipe != "" {
 			props["recipeName"] = res.Recipe
 		}
-		if res.Placement != nil {
-			props["placement"] = res.Placement
-		}
 		resBody := map[string]any{
 			"name":       res.Name,
 			"properties": props,
@@ -265,6 +263,32 @@ func waitForResource(ctx context.Context, client *connections.Client, resourcePa
 		default:
 			time.Sleep(2 * time.Second)
 		}
+	}
+}
+
+func waitForResourceDeletion(ctx context.Context, client *connections.Client, resourcePath string) error {
+	timeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+
+	for {
+		select {
+		case <-timeout.Done():
+			return fmt.Errorf("timed out waiting for resource deletion")
+		default:
+		}
+
+		_, statusCode, err := client.Get(timeout, resourcePath)
+		if err != nil {
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		// Resource is gone — deletion complete
+		if statusCode == http.StatusNotFound {
+			return nil
+		}
+
+		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -410,23 +434,78 @@ func newAppCmd() *cobra.Command {
 		},
 	})
 
-	cmd.AddCommand(&cobra.Command{
+	deleteCmd := &cobra.Command{
 		Use:   "delete [name]",
-		Short: "Delete an application",
+		Short: "Delete an application and all its resources",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client := getClient(cmd)
-			_, statusCode, err := client.Delete(cmd.Context(), "/api/v1/applications/"+args[0])
+			ctx := cmd.Context()
+			appName := args[0]
+			wait, _ := cmd.Flags().GetBool("wait")
+
+			// List resources in the application
+			body, statusCode, err := client.Get(ctx, "/api/v1/applications/"+appName+"/resources")
+			if err != nil {
+				return err
+			}
+
+			var resourcePaths []string
+			if statusCode == http.StatusOK {
+				var resp connections.ListResponse
+				if err := json.Unmarshal(body, &resp); err == nil {
+					for _, item := range resp.Value {
+						var res map[string]any
+						if err := json.Unmarshal(item, &res); err == nil {
+							name, _ := res["name"].(string)
+							if name != "" {
+								resourcePaths = append(resourcePaths, fmt.Sprintf("/api/v1/applications/%s/resources/%s", appName, name))
+							}
+						}
+					}
+				}
+			}
+
+			// Delete each resource (triggers terraform destroy)
+			if len(resourcePaths) > 0 {
+				output.PrintStatus("Deleting %d resource(s) in application %q...", len(resourcePaths), appName)
+				for _, path := range resourcePaths {
+					_, statusCode, err := client.Delete(ctx, path)
+					if err != nil {
+						output.PrintError("Failed to delete resource: %v", err)
+						continue
+					}
+					if statusCode == http.StatusAccepted {
+						output.PrintStatus("Resource deletion queued: %s", path)
+					}
+				}
+
+				// Wait for all resources to be deleted
+				if wait {
+					output.PrintStatus("Waiting for resource deletions to complete...")
+					for _, path := range resourcePaths {
+						if err := waitForResourceDeletion(ctx, client, path); err != nil {
+							output.PrintError("Resource deletion failed: %v", err)
+						}
+					}
+				}
+			}
+
+			// Delete the application itself
+			output.PrintStatus("Deleting application %q...", appName)
+			_, statusCode, err = client.Delete(ctx, "/api/v1/applications/"+appName)
 			if err != nil {
 				return err
 			}
 			if statusCode >= 400 && statusCode != http.StatusNoContent {
 				return fmt.Errorf("failed to delete application (status %d)", statusCode)
 			}
-			output.PrintSuccess("Application %q deleted", args[0])
+			output.PrintSuccess("Application %q deleted", appName)
 			return nil
 		},
-	})
+	}
+	deleteCmd.Flags().Bool("wait", true, "Wait for resource deletions to complete")
+	cmd.AddCommand(deleteCmd)
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "status [name]",
@@ -619,6 +698,150 @@ func newRecipeCmd() *cobra.Command {
 	}
 	listCmd.Flags().StringP("environment", "e", "", "Environment name (required)")
 	cmd.AddCommand(listCmd)
+
+	return cmd
+}
+
+// --- placement ---
+
+func newPlacementCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "placement",
+		Short: "Manage placement rules (admin)",
+	}
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "list",
+		Short: "List placement rules",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			body, _, err := client.Get(cmd.Context(), "/api/v1/placements")
+			if err != nil {
+				return err
+			}
+
+			var resp connections.ListResponse
+			if err := json.Unmarshal(body, &resp); err != nil {
+				return output.PrintJSON(json.RawMessage(body))
+			}
+
+			headers := []string{"NAME", "RESOURCE TYPE", "REGION", "SOVEREIGNTY", "COST", "PRIORITY"}
+			var rows [][]string
+			for _, item := range resp.Value {
+				var rule map[string]any
+				_ = json.Unmarshal(item, &rule)
+				name, _ := rule["name"].(string)
+				props, _ := rule["properties"].(map[string]any)
+				resType, _ := props["resourceType"].(string)
+				region := ""
+				sovereignty := ""
+				costPref := ""
+				priority := "0"
+				if c, ok := props["constraints"].(map[string]any); ok {
+					region, _ = c["region"].(string)
+					sovereignty, _ = c["sovereignty"].(string)
+				}
+				if p, ok := props["preferences"].(map[string]any); ok {
+					if v, ok := p["cost"].(string); ok {
+						costPref = v
+					}
+				}
+				if p, ok := props["priority"].(float64); ok && p > 0 {
+					priority = fmt.Sprintf("%.0f", p)
+				}
+				rows = append(rows, []string{name, resType, region, sovereignty, costPref, priority})
+			}
+			output.PrintTable(headers, rows)
+			return nil
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "show [name]",
+		Short: "Show placement rule details",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			body, statusCode, err := client.Get(cmd.Context(), "/api/v1/placements/"+args[0])
+			if err != nil {
+				return err
+			}
+			if statusCode == http.StatusNotFound {
+				return fmt.Errorf("placement rule %q not found", args[0])
+			}
+			return output.PrintJSON(json.RawMessage(body))
+		},
+	})
+
+	createCmd := &cobra.Command{
+		Use:   "create [name]",
+		Short: "Create a placement rule",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			resType, _ := cmd.Flags().GetString("resource-type")
+			region, _ := cmd.Flags().GetString("region")
+			sovereignty, _ := cmd.Flags().GetString("sovereignty")
+			costPref, _ := cmd.Flags().GetString("cost")
+			resourcesPref, _ := cmd.Flags().GetString("available-resources")
+			priority, _ := cmd.Flags().GetInt("priority")
+
+			if resType == "" {
+				return fmt.Errorf("--resource-type is required")
+			}
+
+			body := map[string]any{
+				"name": args[0],
+				"properties": map[string]any{
+					"resourceType": resType,
+					"constraints": map[string]any{
+						"region":      region,
+						"sovereignty": sovereignty,
+					},
+					"preferences": map[string]any{
+						"cost":               costPref,
+						"availableResources": resourcesPref,
+					},
+					"priority": priority,
+				},
+			}
+
+			_, statusCode, err := client.Put(cmd.Context(), "/api/v1/placements/"+args[0], body)
+			if err != nil {
+				return err
+			}
+			if statusCode >= 400 {
+				return fmt.Errorf("failed to create placement rule (status %d)", statusCode)
+			}
+			output.PrintSuccess("Placement rule %q created", args[0])
+			return nil
+		},
+	}
+	createCmd.Flags().String("resource-type", "", "Resource type this rule applies to (required)")
+	createCmd.Flags().String("region", "", "Required region constraint")
+	createCmd.Flags().String("sovereignty", "", "Required sovereignty constraint")
+	createCmd.Flags().String("cost", "", "Cost preference (minimize)")
+	createCmd.Flags().String("available-resources", "", "Available resources preference (maximize)")
+	createCmd.Flags().Int("priority", 0, "Rule priority (higher wins)")
+	cmd.AddCommand(createCmd)
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "delete [name]",
+		Short: "Delete a placement rule",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			_, statusCode, err := client.Delete(cmd.Context(), "/api/v1/placements/"+args[0])
+			if err != nil {
+				return err
+			}
+			if statusCode >= 400 && statusCode != http.StatusNoContent {
+				return fmt.Errorf("failed to delete placement rule (status %d)", statusCode)
+			}
+			output.PrintSuccess("Placement rule %q deleted", args[0])
+			return nil
+		},
+	})
 
 	return cmd
 }

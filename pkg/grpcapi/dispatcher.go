@@ -65,18 +65,17 @@ func (d *ResourceDispatcher) Run(ctx context.Context, request *async.AsyncReques
 	environmentName := app.Properties.Environment
 	recipeName := resource.Properties.RecipeName
 
-	// If no explicit environment or recipe, use placement engine
+	// If no explicit environment or recipe, use placement engine with admin rules
 	if environmentName == "" || recipeName == "" {
 		placementReq := placement.PlacementRequest{
 			ResourceType: resource.Properties.ResourceType,
 		}
-		if resource.Properties.Placement != nil {
-			placementReq.Constraints = resource.Properties.Placement.Constraints
-			placementReq.Preferences = resource.Properties.Placement.Preferences
-		}
+
+		// Load placement rules from database
+		rules := d.loadPlacementRules(ctx)
 
 		envs := d.server.GetEnvironments()
-		result, err := d.placementEngine.Place(placementReq, envs)
+		result, err := d.placementEngine.Place(placementReq, rules, envs)
 		if err != nil {
 			setResourceFailed(d.db, ctx, obj, &resource, "placement failed: "+err.Error())
 			return failedResult(err), nil
@@ -174,6 +173,26 @@ func setResourceFailed(db database.Client, ctx context.Context, obj *database.Ob
 	resource.Properties.Status.Error = errMsg
 	obj.Data = resource
 	_ = db.Save(ctx, obj, database.WithETag(obj.ETag))
+}
+
+// loadPlacementRules queries all placement rules from the database.
+func (d *ResourceDispatcher) loadPlacementRules(ctx context.Context) []placement.PlacementRule {
+	result, err := d.db.Query(ctx, database.Query{
+		RootScope:    "/api/v1",
+		ResourceType: placement.PlacementRuleResourceType,
+	})
+	if err != nil {
+		return nil
+	}
+
+	var rules []placement.PlacementRule
+	for _, item := range result.Items {
+		var rule placement.PlacementRule
+		if err := item.As(&rule); err == nil {
+			rules = append(rules, rule)
+		}
+	}
+	return rules
 }
 
 func failedResult(err error) ctrl.OperationResult {
