@@ -15,6 +15,7 @@ This directory contains architectural design documents (ADRs) for the Ryobi proj
 | [007](007-api-framework.md) | API Framework | Adapted from Radius armrpc, simplified |
 | [008](008-terraform-state-management.md) | Terraform State Management | PostgreSQL pg backend, schema isolation |
 | [009](009-environment-agent.md) | Environment Agent | Separate binary, gRPC watch stream, auto-register/unregister |
+| [010](010-placement-engine.md) | Placement Engine | Per-resource placement, constraints + preferences, capability-based scoring |
 
 ## Format
 

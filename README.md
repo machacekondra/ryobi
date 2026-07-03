@@ -11,6 +11,7 @@ Ryobi provides a simple YAML-based workflow for defining applications and their 
 - **Multi-Cloud** — Deploy to Azure, AWS, or any cloud supported by Terraform providers.
 - **Lightweight** — Single binary server with PostgreSQL. No Kubernetes required.
 - **Predefined Recipes** — Ships with ready-to-use recipes for Kubernetes Deployments (`Ryobi.Compute/containers`) and KubeVirt VMs (`Ryobi.Compute/virtualMachines`).
+- **Smart Placement** — Automatically select the best environment per resource based on constraints (region, sovereignty, capabilities) and preferences (cost, capacity).
 
 ## Architecture
 

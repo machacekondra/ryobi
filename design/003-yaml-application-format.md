@@ -63,8 +63,9 @@ The CLI validates documents before sending API calls:
 - `apiVersion` must be `ryobi/v1`
 - `kind` must be `Application` or `Environment`
 - `metadata.name` is required on all documents
-- `metadata.environment` is required on Applications
-- Each resource must have `name`, `type`, and `recipe`
+- `metadata.environment` is optional on Applications (placement engine decides if omitted)
+- Each resource must have `name` and `type`; `recipe` is optional (placement engine selects if omitted)
+- Resources can include a `placement` section with constraints and preferences for automatic environment selection
 
 ### Design Principles
 
