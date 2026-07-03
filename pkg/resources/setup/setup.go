@@ -105,4 +105,12 @@ func SetupRoutes(router *gateway.Router, opts ctrl.Options) {
 		Put:    resctrl.NewGenericPutFactory(rootScope),
 		Delete: resctrl.NewGenericDeleteFactory(rootScope),
 	})
+
+	// Resource Types: admin-managed resource type definitions (sync CRUD)
+	router.RegisterResourceRoutes("/api/v1/resource-types", "ryobi/resource-types", gateway.ResourceFactories{
+		List:   resctrl.NewGenericListFactory(rootScope),
+		Get:    resctrl.NewGenericGetFactory(rootScope),
+		Put:    resctrl.NewGenericPutFactory(rootScope),
+		Delete: resctrl.NewGenericDeleteFactory(rootScope),
+	})
 }

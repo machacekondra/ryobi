@@ -22,6 +22,8 @@ import (
 	"github.com/ryobi-project/ryobi/pkg/gateway"
 	"github.com/ryobi-project/ryobi/pkg/grpcapi"
 	"github.com/ryobi-project/ryobi/pkg/placement"
+	adminUI "github.com/ryobi-project/ryobi/pkg/ui/admin"
+	portalUI "github.com/ryobi-project/ryobi/pkg/ui/portal"
 	"github.com/ryobi-project/ryobi/pkg/resources/datamodel"
 	"github.com/ryobi-project/ryobi/pkg/resources/setup"
 	"github.com/ryobi-project/ryobi/pkg/version"
@@ -58,6 +60,10 @@ func main() {
 	// Set up HTTP router
 	router := gateway.NewRouter(ctrlOpts, logger)
 	setup.SetupRoutes(router, ctrlOpts)
+
+	// Mount UI SPAs
+	router.MountSPA("/portal", portalUI.Assets)
+	router.MountSPA("/admin", adminUI.Assets)
 
 	// Set up placement engine and async worker
 	placementEngine := placement.NewEngine()

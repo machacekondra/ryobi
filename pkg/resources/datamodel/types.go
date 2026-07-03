@@ -163,12 +163,29 @@ type CatalogParameter struct {
 	Required     bool   `json:"required,omitempty"`
 }
 
-// Resource type constants.
+// ResourceTypeDefinition is an admin-managed API object defining a resource type.
+type ResourceTypeDefinition struct {
+	ID         string                        `json:"id"`
+	Name       string                        `json:"name"`
+	Type       string                        `json:"type"`
+	Properties ResourceTypeDefinitionProperties `json:"properties"`
+}
+
+// ResourceTypeDefinitionProperties describes a resource type.
+type ResourceTypeDefinitionProperties struct {
+	Description string `json:"description,omitempty"`
+	Icon        string `json:"icon,omitempty"`
+	Category    string `json:"category,omitempty"`
+	Schema      map[string]any `json:"schema,omitempty"`
+}
+
+// API resource type constants.
 const (
-	EnvironmentResourceType  = "ryobi/environments"
-	ApplicationResourceType  = "ryobi/applications"
-	ResourceResourceType     = "ryobi/resources"
-	CatalogItemResourceType  = "ryobi/catalog-items"
+	EnvironmentResourceType      = "ryobi/environments"
+	ApplicationResourceType      = "ryobi/applications"
+	ResourceResourceType         = "ryobi/resources"
+	CatalogItemResourceType      = "ryobi/catalog-items"
+	ResourceTypeDefResourceType  = "ryobi/resource-types"
 )
 
 // Well-known resource type identifiers for recipes.

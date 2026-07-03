@@ -14,11 +14,17 @@ DIST_DIR = dist
 IMAGE_REGISTRY ?= ghcr.io/ryobi-project
 IMAGE_TAG ?= $(VERSION)
 
-.PHONY: all build build-cli build-server build-env test lint clean install proto image-env image-server
+.PHONY: all build build-cli build-server build-env build-ui test lint clean install proto image-env image-server
 
 all: build
 
-build: build-cli build-server build-env
+build: build-ui build-cli build-server build-env
+
+build-ui:
+	@echo "Building Portal UI..."
+	cd ui/portal && npm run build
+	@echo "Building Admin UI..."
+	cd ui/admin && npm run build
 
 build-cli:
 	@echo "Building $(BINARY_CLI)..."

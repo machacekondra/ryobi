@@ -2,7 +2,9 @@ package gateway
 
 import (
 	"context"
+	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -39,6 +41,61 @@ func NewRouter(opts ctrl.Options, logger logr.Logger) *Router {
 // Handler returns the http.Handler.
 func (r *Router) Handler() http.Handler {
 	return r.chi
+}
+
+// MountSPA mounts a single-page application at the given path.
+// The embedFS should contain a "dist" directory with index.html and assets.
+func (r *Router) MountSPA(path string, embedFS fs.FS) {
+	subFS, err := fs.Sub(embedFS, "dist")
+	if err != nil {
+		r.logger.Error(err, "Failed to mount SPA", "path", path)
+		return
+	}
+
+	prefix := strings.TrimSuffix(path, "/")
+
+	r.chi.Handle(prefix+"/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Strip prefix to get file path relative to embedded FS
+		filePath := strings.TrimPrefix(req.URL.Path, prefix)
+		filePath = strings.TrimPrefix(filePath, "/")
+
+		if filePath == "" {
+			filePath = "index.html"
+		}
+
+		// Serve the file if it exists, otherwise serve index.html (SPA fallback)
+		data, err := fs.ReadFile(subFS, filePath)
+		if err != nil {
+			data, err = fs.ReadFile(subFS, "index.html")
+			if err != nil {
+				http.NotFound(w, req)
+				return
+			}
+			filePath = "index.html"
+		}
+
+		// Set content type
+		switch {
+		case strings.HasSuffix(filePath, ".html"):
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		case strings.HasSuffix(filePath, ".js"):
+			w.Header().Set("Content-Type", "application/javascript")
+		case strings.HasSuffix(filePath, ".css"):
+			w.Header().Set("Content-Type", "text/css")
+		case strings.HasSuffix(filePath, ".svg"):
+			w.Header().Set("Content-Type", "image/svg+xml")
+		case strings.HasSuffix(filePath, ".json"):
+			w.Header().Set("Content-Type", "application/json")
+		case strings.HasSuffix(filePath, ".png"):
+			w.Header().Set("Content-Type", "image/png")
+		case strings.HasSuffix(filePath, ".ico"):
+			w.Header().Set("Content-Type", "image/x-icon")
+		}
+
+		w.Write(data)
+	}))
+
+	r.logger.Info("Mounted SPA", "path", prefix+"/")
 }
 
 // RegisterHealthCheck registers the health check endpoint.
