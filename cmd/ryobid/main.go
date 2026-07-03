@@ -57,6 +57,9 @@ func main() {
 	// Set up gRPC environment server
 	envServer := grpcapi.NewEnvironmentServer(db, sm, logger)
 
+	// Seed built-in resource types
+	seedResourceTypes(db, logger)
+
 	// Set up HTTP router
 	router := gateway.NewRouter(ctrlOpts, logger)
 	setup.SetupRoutes(router, ctrlOpts)
@@ -151,4 +154,99 @@ func (s *grpcServerService) Run(ctx context.Context) error {
 
 	s.logger.Info("gRPC server started", "address", s.address)
 	return grpcServer.Serve(lis)
+}
+
+func seedResourceTypes(db database.Client, logger logr.Logger) {
+	types := []struct {
+		name        string
+		description string
+		icon        string
+		category    string
+	}{
+		{"Ryobi.Compute/containers", "Kubernetes Deployment managed via Terraform", "🐳", "compute"},
+		{"Ryobi.Compute/virtualMachines", "KubeVirt Virtual Machine managed via Terraform", "🖥️", "compute"},
+	}
+
+	ctx := context.Background()
+	for _, rt := range types {
+		id := "/api/v1/ryobi/resource-types/" + rt.name
+		if _, err := db.Get(ctx, id); err == nil {
+			continue // already exists
+		}
+		obj := &database.Object{
+			Metadata: database.Metadata{
+				ID:           id,
+				ResourceType: datamodel.ResourceTypeDefResourceType,
+				RootScope:    "/api/v1",
+			},
+			Data: map[string]any{
+				"name": rt.name,
+				"type": datamodel.ResourceTypeDefResourceType,
+				"properties": map[string]any{
+					"description": rt.description,
+					"icon":        rt.icon,
+					"category":    rt.category,
+				},
+			},
+		}
+		if err := db.Save(ctx, obj); err != nil {
+			logger.Error(err, "Failed to seed resource type", "name", rt.name)
+		} else {
+			logger.Info("Seeded resource type", "name", rt.name)
+		}
+	}
+
+	// Seed catalog items
+	catalogItems := []struct {
+		name string
+		data map[string]any
+	}{
+		{"nginx-webserver", map[string]any{
+			"name": "nginx-webserver",
+			"type": datamodel.CatalogItemResourceType,
+			"properties": map[string]any{
+				"description": "Nginx web server with configurable replicas",
+				"icon":        "🌐",
+				"category":    "web",
+				"resources": []any{
+					map[string]any{
+						"name": "nginx",
+						"type": "Ryobi.Compute/containers",
+						"parameters": map[string]any{
+							"name":           "nginx",
+							"image":          "nginx:1.25-alpine",
+							"replicas":       2,
+							"ports":          []any{map[string]any{"container_port": 80}},
+							"cpu_request":    "100m",
+							"memory_request": "64Mi",
+						},
+					},
+				},
+				"parameters": []any{
+					map[string]any{"name": "replicas", "description": "Number of nginx replicas", "type": "number", "default": 2},
+					map[string]any{"name": "image", "description": "Container image", "type": "string", "default": "nginx:1.25-alpine"},
+				},
+			},
+		}},
+	}
+
+	for _, ci := range catalogItems {
+		id := "/api/v1/ryobi/catalog-items/" + ci.name
+		if _, err := db.Get(ctx, id); err == nil {
+			continue
+		}
+		obj := &database.Object{
+			Metadata: database.Metadata{
+				ID:           id,
+				ResourceType: datamodel.CatalogItemResourceType,
+				RootScope:    "/api/v1",
+			},
+			Data: ci.data,
+		}
+		if err := db.Save(ctx, obj); err != nil {
+			logger.Error(err, "Failed to seed catalog item", "name", ci.name)
+		} else {
+			logger.Info("Seeded catalog item", "name", ci.name)
+		}
+	}
 }
