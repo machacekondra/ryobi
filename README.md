@@ -15,68 +15,71 @@ Ryobi provides a simple YAML-based workflow for defining applications and their 
 ## Architecture
 
 ```
-ryobi CLI ──[HTTP]──▶ ryobid (API server + async worker)
-                        ├── Environments (sync CRUD)
+ryobi CLI ──[HTTP]──▶ ryobid (HTTP :9000 + gRPC :9001)
                         ├── Applications (sync CRUD)
-                        └── Resources (async → Terraform recipes)
-                              └── terraform init/apply/destroy
+                        ├── Resources (async → dispatches via gRPC)
+                        └── gRPC watch stream
+                              ↕
+                        ryobi-env (environment agent)
+                          ├── Registers environment on startup
+                          ├── Watches for resource events
+                          ├── Executes terraform locally
+                          └── Reports results back via gRPC
 ```
 
 | Component | Description |
 |-----------|-------------|
-| `ryobi`   | CLI — parses YAML, calls API, displays status |
-| `ryobid`  | Server — API gateway, resource provider, async worker |
+| `ryobi`     | CLI — parses YAML, calls API, displays status |
+| `ryobid`    | Server — HTTP API, gRPC event dispatcher |
+| `ryobi-env` | Environment agent — registers environment, executes Terraform recipes |
 
 ## Quick Start
 
 ### Prerequisites
 
-- [Podman](https://podman.io) and `podman-compose`
 - [Terraform](https://www.terraform.io/downloads) CLI
 - Go 1.24+ (if building from source)
+- A Kubernetes cluster (for the built-in container/VM recipes)
 
-### 1. Start the platform
+### 1. Build
 
 ```bash
 git clone https://github.com/ryobi-project/ryobi.git
 cd ryobi
-podman-compose -f deploy/podman-compose.yaml up -d
+make build
 ```
 
-### 2. Install the CLI
+### 2. Start the server
 
 ```bash
-make build
-cp dist/ryobi /usr/local/bin/
+./dist/ryobid
 ```
 
-### 3. Deploy an application
+### 3. Start an environment agent
 
-Create a YAML file with your environment and application:
+```bash
+./dist/ryobi-env examples/env-kubernetes.yaml
+```
+
+### 4. Deploy an application
 
 ```yaml
-apiVersion: ryobi/v1
-kind: Environment
-metadata:
-  name: dev
-providers:
-  azure:
-    scope: /subscriptions/<sub-id>/resourceGroups/<rg>
-recipes:
-  Applications.Datastores/postgresDatabases:
-    default:
-      templateKind: terraform
-      templatePath: ghcr.io/myorg/recipes/postgres:1.0
----
+# app.yaml
 apiVersion: ryobi/v1
 kind: Application
 metadata:
   name: my-app
   environment: dev
 resources:
-  - name: database
-    type: Applications.Datastores/postgresDatabases
-    recipe: default
+  - name: nginx
+    type: Ryobi.Compute/containers
+    recipe: kubernetes
+    parameters:
+      name: nginx
+      image: nginx:1.25-alpine
+      replicas: 2
+      ports:
+        - container_port: 80
 ```
 
 Deploy:
@@ -94,12 +97,14 @@ ryobi app status my-app
 ## CLI Commands
 
 ```
-ryobi deploy <file>             Deploy from YAML
-ryobi env list|show|delete      Manage environments
+ryobi deploy <file>                 Deploy from YAML
+ryobi env list|show|delete          Manage environments
 ryobi app list|show|status|delete   Manage applications
 ryobi resource list|show|delete     Manage resources
-ryobi recipe list               List registered recipes
-ryobi version                   Show version info
+ryobi recipe list                   List registered recipes
+ryobi version                       Show version info
+
+ryobi-env <config.yaml>             Start an environment agent
 ```
 
 ## Project Structure
@@ -107,21 +112,25 @@ ryobi version                   Show version info
 ```
 cmd/
   ryobi/          CLI entry point
-  ryobid/         Server entry point
+  ryobid/         Server entry point (HTTP + gRPC)
+  ryobi-env/      Environment agent entry point
 pkg/
   api/            API framework (controllers, async operations)
+  grpcapi/        gRPC server, dispatcher, protobuf generated code
   gateway/        HTTP router and server configuration
-  resources/      Data models, CRUD controllers, async handlers
+  resources/      Data models, CRUD controllers
   recipes/        Terraform executor, config generation, state backends
   components/     Database, queue, hosting abstractions
   cli/            YAML parser, API client, output formatting
+proto/            Protobuf service definitions
+recipes/          Predefined Terraform recipe modules
 deploy/
   Containerfile           Container image build
   podman-compose.yaml     Platform deployment
   systemd/                Systemd unit file
   config/                 Default server configuration
 docs/                     Documentation website (GitHub Pages)
-examples/                 Sample YAML definitions
+examples/                 Sample YAML definitions + environment agent configs
 ```
 
 ## Configuration
@@ -130,10 +139,31 @@ examples/                 Sample YAML definitions
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `RYOBI_ADDRESS` | `0.0.0.0:9000` | Listen address |
-| `RYOBI_DB_URL` | — | PostgreSQL URL (enables PG state backend) |
-| `RYOBI_TF_ROOT_DIR` | `~/.ryobi/terraform` | Terraform working directory |
-| `TERRAFORM_PATH` | `terraform` | Path to terraform binary |
+| `RYOBI_ADDRESS` | `0.0.0.0:9000` | HTTP API listen address |
+| `RYOBI_GRPC_ADDRESS` | `0.0.0.0:9001` | gRPC listen address (for env agents) |
+
+### Environment Agent (`ryobi-env`)
+
+Configured via a YAML file (see `examples/env-kubernetes.yaml`):
+
+```yaml
+name: dev
+server:
+  grpcAddress: localhost:9001
+providers:
+  kubernetes:
+    scope: default
+terraformProviders:
+  kubernetes:
+    config_path: "~/.kube/config"
+recipes:
+  - resourceType: Ryobi.Compute/containers
+    recipeName: kubernetes
+    templatePath: ../recipes/kubernetes-pod
+terraform:
+  binaryPath: terraform
+  workDir: ~/.ryobi/terraform
+```
 
 ### CLI
 

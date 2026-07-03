@@ -66,37 +66,47 @@
     </div>
 
     <h2>Components</h2>
-    <p>Ryobi consists of two binaries:</p>
+    <p>Ryobi consists of three binaries:</p>
     <table>
-      <thead><tr><th>Component</th><th>Description</th></tr></thead>
+      <thead><tr><th>Component</th><th>Port</th><th>Description</th></tr></thead>
       <tbody>
-        <tr><td><code>ryobi</code></td><td>CLI tool &mdash; parses YAML, calls the API, displays status</td></tr>
-        <tr><td><code>ryobid</code></td><td>Server &mdash; API gateway, resource provider, async worker</td></tr>
+        <tr><td><code>ryobi</code></td><td>&mdash;</td><td>CLI tool &mdash; parses YAML, calls the HTTP API, displays status</td></tr>
+        <tr><td><code>ryobid</code></td><td>9000 (HTTP) + 9001 (gRPC)</td><td>Server &mdash; HTTP API, gRPC event dispatcher</td></tr>
+        <tr><td><code>ryobi-env</code></td><td>&mdash;</td><td>Environment agent &mdash; registers environment, watches for resources, executes Terraform</td></tr>
       </tbody>
     </table>
 
     <h2>Request Flow</h2>
     <p>When you run <code>ryobi deploy app.yaml</code>, the following happens:</p>
-    <pre><code>ryobi CLI ──[HTTP]──▶ ryobid (Chi router)
-                        ├── Frontend controllers (sync CRUD)
-                        ├── StatusManager → Queue (PostgreSQL)
-                        └── AsyncWorker
-                              └── Terraform exec (recipe lifecycle)</code></pre>
+    <pre><code>ryobi CLI ──[HTTP]──▶ ryobid
+                        ├── Chi Router (HTTP API)
+                        ├── StatusManager → Queue
+                        ├── Worker → ResourceDispatcher
+                        └── gRPC Server
+                              ↕ watch stream
+                        ryobi-env (environment agent)
+                          ├── terraform init/apply/destroy
+                          └── ReportResult → ryobid</code></pre>
 
-    <h3>Synchronous Operations</h3>
-    <p><strong>Environments</strong> and <strong>Applications</strong> are created synchronously. The CLI sends a PUT request, the server validates and persists the resource, and returns immediately.</p>
+    <h3>Environment Agent Lifecycle</h3>
+    <p>Environments are <strong>live agents</strong>, not static configuration:</p>
+    <ol>
+      <li><code>ryobi-env</code> starts with a <code>config.yaml</code> defining providers, credentials, and recipes</li>
+      <li>It registers the environment with <code>ryobid</code> via gRPC</li>
+      <li>It opens a watch stream and waits for resource events</li>
+      <li>On shutdown (Ctrl+C), it unregisters and removes the environment</li>
+    </ol>
 
-    <h3>Asynchronous Operations</h3>
-    <p><strong>Resources</strong> (Terraform-managed infrastructure) are deployed asynchronously:</p>
+    <h3>Resource Deployment</h3>
+    <p><strong>Resources</strong> (Terraform-managed infrastructure) are deployed asynchronously via the environment agent:</p>
     <ol>
       <li>The CLI sends a PUT request for the resource</li>
-      <li>The server saves the resource and queues an async operation</li>
-      <li>Returns <code>202 Accepted</code> with an operation URL</li>
-      <li>The async worker picks up the operation from the queue</li>
-      <li>Resolves the recipe from the environment</li>
-      <li>Generates Terraform configuration (<code>main.tf.json</code>)</li>
-      <li>Runs <code>terraform init</code> and <code>terraform apply</code></li>
-      <li>Extracts outputs and updates the resource status</li>
+      <li><code>ryobid</code> saves the resource, queues an async operation, returns <code>202 Accepted</code></li>
+      <li>The dispatcher finds the environment agent via gRPC and pushes a <code>ResourceEvent</code></li>
+      <li><code>ryobi-env</code> receives the event, resolves the recipe from its local config</li>
+      <li>Generates <code>main.tf.json</code>, runs <code>terraform init</code> + <code>terraform apply</code></li>
+      <li>Reports the result (success + outputs or failure + error) back via gRPC</li>
+      <li><code>ryobid</code> updates the resource and operation status</li>
     </ol>
 
     <h2>Data Storage</h2>
@@ -132,8 +142,8 @@
         <p>Simple REST endpoints (<code>/api/v1/...</code>) instead of complex ARM-style resource IDs. Easy to understand, easy to integrate.</p>
       </div>
       <div class="card">
-        <h3>Single binary server</h3>
-        <p><code>ryobid</code> combines the API server and async worker. No microservice sprawl. One process, one database.</p>
+        <h3>Environment agents</h3>
+        <p>Each environment runs as a separate <code>ryobi-env</code> agent with its own credentials and recipes. Server stays lightweight &mdash; no Terraform needed.</p>
       </div>
     </div>
   </div>

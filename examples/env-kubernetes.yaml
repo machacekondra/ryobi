@@ -1,0 +1,34 @@
+# Environment agent configuration for a Kubernetes cluster.
+#
+# Start the agent:
+#   ryobi-env examples/env-kubernetes.yaml
+#
+# Then deploy apps targeting this environment:
+#   ryobi deploy examples/container-nginx.yaml
+
+name: dev
+
+server:
+  grpcAddress: localhost:9001
+
+providers:
+  kubernetes:
+    scope: default
+
+terraformProviders:
+  kubernetes:
+    config_path: "~/.kube/config"
+
+recipes:
+  - resourceType: Ryobi.Compute/containers
+    recipeName: kubernetes
+    templatePath: ../recipes/kubernetes-pod
+
+  - resourceType: Ryobi.Compute/virtualMachines
+    recipeName: kubevirt
+    templatePath: ../recipes/kubevirt-vm
+
+terraform:
+  binaryPath: terraform
+  workDir: ~/.ryobi/terraform
+  stateBackend: local

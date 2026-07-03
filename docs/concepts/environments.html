@@ -50,15 +50,20 @@
       <a href="#">Concepts</a> <span>/</span> Environments
     </div>
     <div class="page-header"><h1>Environments</h1></div>
-    <p>An <strong>Environment</strong> represents a deployment target. It defines which cloud providers are available, what recipes can be used, and how Terraform is configured.</p><h2>Key Properties</h2><ul><li><strong>Providers</strong> &mdash; Cloud provider scopes (Azure subscriptions, AWS accounts)</li><li><strong>Recipes</strong> &mdash; Registry of available Terraform module templates per resource type</li><li><strong>Recipe Config</strong> &mdash; Global Terraform provider settings and authentication</li></ul><h2>Example</h2><pre><code>apiVersion: ryobi/v1
-kind: Environment
-metadata:
-  name: prod
+    <p>An <strong>Environment</strong> is a <strong>live agent</strong> that connects to the Ryobi server. It defines which cloud providers are available, what recipes can be used, and executes Terraform operations locally.</p><h2>How Environments Work</h2><p>Unlike static configuration, environments are managed by the <code>ryobi-env</code> agent binary:</p><ol><li>Start the agent with a config file: <code>ryobi-env config.yaml</code></li><li>The agent registers the environment with <code>ryobid</code> via gRPC</li><li>It watches for resource events and executes Terraform locally</li><li>On shutdown (Ctrl+C or SIGTERM), it unregisters and removes the environment</li></ol><h2>Key Properties</h2><ul><li><strong>Providers</strong> &mdash; Cloud provider scopes (Azure, AWS, Kubernetes)</li><li><strong>Terraform Providers</strong> &mdash; Provider blocks injected into generated Terraform configs (e.g., kubeconfig path)</li><li><strong>Recipes</strong> &mdash; Terraform modules available for this environment</li></ul><h2>Configuration Example</h2><pre><code># env-kubernetes.yaml (ryobi-env config)
+name: dev
+server:
+  grpcAddress: localhost:9001
 providers:
-  azure:
-    scope: /subscriptions/xxx/resourceGroups/my-rg
+  kubernetes:
+    scope: default
+terraformProviders:
+  kubernetes:
+    config_path: "~/.kube/config"
 recipes:
-  Applications.Datastores/postgresDatabases:
+  - resourceType: Ryobi.Compute/containers
+    recipeName: kubernetes
+    templatePath: ../recipes/kubernetes-pod
     default:
       templateKind: terraform
       templatePath: ghcr.io/myorg/recipes/postgres:1.0</code></pre>

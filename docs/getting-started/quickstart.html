@@ -79,36 +79,23 @@ cd ryobi
 podman-compose -f deploy/podman-compose.yaml up -d</code></pre>
     <p>This starts PostgreSQL and the <code>ryobid</code> server on port <strong>9000</strong>.</p>
 
-    <h2>Step 2: Install the CLI</h2>
-    <p>Build and install the Ryobi CLI:</p>
+    <h2>Step 2: Build All Binaries</h2>
     <pre><code>make build
-cp dist/ryobi /usr/local/bin/</code></pre>
-    <p>Verify the installation:</p>
-    <pre><code>ryobi version
-# ryobi version 0.1.0-dev (commit: abc1234, channel: dev)</code></pre>
+# Produces: dist/ryobi, dist/ryobid, dist/ryobi-env</code></pre>
+    <p>Verify:</p>
+    <pre><code>./dist/ryobi version</code></pre>
 
-    <h2>Step 3: Create an Environment</h2>
-    <p>Create a YAML file that defines your environment with a Kubernetes provider and the built-in container recipe:</p>
-    <pre><code># env.yaml
-apiVersion: ryobi/v1
-kind: Environment
-metadata:
-  name: dev
-providers:
-  kubernetes:
-    scope: default
-recipes:
-  Ryobi.Compute/containers:
-    kubernetes:
-      templateKind: terraform
-      templatePath: ./recipes/kubernetes-pod
-recipeConfig:
-  terraform:
-    providers:
-      kubernetes:
-        config_path: "~/.kube/config"</code></pre>
+    <h2>Step 3: Start the Server</h2>
+    <p>In a separate terminal:</p>
+    <pre><code>./dist/ryobid
+# HTTP API on :9000, gRPC on :9001</code></pre>
 
-    <h2>Step 4: Define Your Application</h2>
+    <h2>Step 4: Start an Environment Agent</h2>
+    <p>In another terminal, start the environment agent with the example Kubernetes config:</p>
+    <pre><code>./dist/ryobi-env examples/env-kubernetes.yaml</code></pre>
+    <p>This registers the <code>dev</code> environment with the server, including the built-in container and VM recipes. The agent watches for resource events and executes Terraform locally.</p>
+
+    <h2>Step 5: Define Your Application</h2>
     <p>Create an application YAML that references your environment and recipes:</p>
     <pre><code># app.yaml
 apiVersion: ryobi/v1
@@ -127,14 +114,13 @@ resources:
       ports:
         - container_port: 80</code></pre>
 
-    <h2>Step 5: Deploy</h2>
-    <p>Deploy everything with a single command:</p>
-    <pre><code>ryobi deploy env.yaml
-ryobi deploy app.yaml</code></pre>
-    <p>Or combine both in a single multi-document YAML file:</p>
-    <pre><code>ryobi deploy examples/container-nginx.yaml</code></pre>
+    <h2>Step 6: Deploy</h2>
+    <p>Deploy the application:</p>
+    <pre><code>./dist/ryobi deploy app.yaml</code></pre>
+    <p>Or use the included example:</p>
+    <pre><code>./dist/ryobi deploy examples/container-nginx.yaml</code></pre>
 
-    <h2>Step 6: Check Status</h2>
+    <h2>Step 7: Check Status</h2>
     <pre><code># List environments
 ryobi env list
 
@@ -146,7 +132,7 @@ ryobi resource show nginx --app my-app</code></pre>
 
     <div class="callout">
       <div class="callout-title">What's next?</div>
-      <p>Learn about <a href="../concepts/recipes.html">Recipes</a> to understand how Terraform modules power your deployments, or follow the <a href="../guides/deploy-app.html">Deploy an Application</a> guide for a complete walkthrough.</p>
+      <p>Learn about <a href="../concepts/environments.html">Environments</a> to understand the agent model, <a href="../concepts/recipes.html">Recipes</a> to see how Terraform modules power deployments, or follow the <a href="../guides/deploy-app.html">Deploy an Application</a> guide for a complete walkthrough.</p>
     </div>
   </div>
 

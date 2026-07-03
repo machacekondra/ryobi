@@ -1,5 +1,6 @@
 BINARY_CLI = ryobi
 BINARY_SERVER = ryobid
+BINARY_ENV = ryobi-env
 VERSION ?= 0.1.0-dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 CHANNEL ?= dev
@@ -10,11 +11,11 @@ GOFLAGS = -ldflags "-X github.com/ryobi-project/ryobi/pkg/version.Version=$(VERS
 
 DIST_DIR = dist
 
-.PHONY: all build build-cli build-server test lint clean install
+.PHONY: all build build-cli build-server build-env test lint clean install proto
 
 all: build
 
-build: build-cli build-server
+build: build-cli build-server build-env
 
 build-cli:
 	@echo "Building $(BINARY_CLI)..."
@@ -25,6 +26,19 @@ build-server:
 	@echo "Building $(BINARY_SERVER)..."
 	@mkdir -p $(DIST_DIR)
 	CGO_ENABLED=0 go build $(GOFLAGS) -o $(DIST_DIR)/$(BINARY_SERVER) ./cmd/ryobid/
+
+build-env:
+	@echo "Building $(BINARY_ENV)..."
+	@mkdir -p $(DIST_DIR)
+	CGO_ENABLED=0 go build $(GOFLAGS) -o $(DIST_DIR)/$(BINARY_ENV) ./cmd/ryobi-env/
+
+proto:
+	protoc --go_out=. --go-grpc_out=. \
+		--go_opt=paths=source_relative \
+		--go-grpc_opt=paths=source_relative \
+		proto/environment.proto
+	mv proto/environment.pb.go pkg/grpcapi/
+	mv proto/environment_grpc.pb.go pkg/grpcapi/
 
 test:
 	go test ./...
@@ -37,4 +51,5 @@ clean:
 
 install: build
 	cp $(DIST_DIR)/$(BINARY_CLI) /usr/local/bin/$(BINARY_CLI)
-	@echo "Installed $(BINARY_CLI) to /usr/local/bin/"
+	cp $(DIST_DIR)/$(BINARY_ENV) /usr/local/bin/$(BINARY_ENV)
+	@echo "Installed $(BINARY_CLI) and $(BINARY_ENV) to /usr/local/bin/"
