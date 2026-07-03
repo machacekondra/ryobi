@@ -59,8 +59,8 @@ func main() {
 
 	client := grpcapi.NewEnvironmentServiceClient(conn)
 
-	// Register the environment
-	if err := registerEnvironment(ctx, client, cfg, logger); err != nil {
+	// Wait for backend and register the environment
+	if err := waitAndRegister(ctx, client, cfg, logger); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to register environment: %v\n", err)
 		os.Exit(1)
 	}
@@ -91,14 +91,47 @@ func main() {
 	// Build recipe lookup table
 	recipeIndex := buildRecipeIndex(cfg)
 
-	// Watch for resource events
-	logger.Info("Watching for resource events...")
-	if err := watchAndProcess(ctx, client, cfg, recipeIndex, watcher, logger); err != nil {
+	// Watch for resource events with automatic reconnect
+	for {
+		logger.Info("Watching for resource events...")
+		err := watchAndProcess(ctx, client, cfg, recipeIndex, watcher, logger)
 		if ctx.Err() != nil {
 			logger.Info("Shutting down")
-		} else {
-			fmt.Fprintf(os.Stderr, "Watch error: %v\n", err)
-			os.Exit(1)
+			break
+		}
+		if err != nil {
+			logger.Error(err, "Watch stream disconnected, reconnecting in 5s...")
+			select {
+			case <-ctx.Done():
+				break
+			case <-time.After(5 * time.Second):
+			}
+			// Re-register before reconnecting the watch
+			if regErr := waitAndRegister(ctx, client, cfg, logger); regErr != nil {
+				break
+			}
+		}
+	}
+}
+
+func waitAndRegister(ctx context.Context, client grpcapi.EnvironmentServiceClient, cfg *EnvConfig, logger logr.Logger) error {
+	for {
+		err := registerEnvironment(ctx, client, cfg, logger)
+		if err == nil {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		logger.Info("Backend not ready, retrying in 5s...", "error", err)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
 		}
 	}
 }
