@@ -88,6 +88,12 @@ func main() {
 	watcher := newStatusWatcher(client, cfg, logger)
 	go watcher.Run(ctx)
 
+	// Start management UI
+	if cfg.Management.Enabled {
+		mgmt := newManagementServer(cfg, watcher, client, logger)
+		go mgmt.Run(ctx)
+	}
+
 	// Build recipe lookup table
 	recipeIndex := buildRecipeIndex(cfg)
 

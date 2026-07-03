@@ -21,6 +21,10 @@ capabilities:
   costPerHour: 0.30
   maxReplicas: 100
 
+management:
+  enabled: true
+  address: 0.0.0.0:9091
+
 recipes:
   - resourceType: Ryobi.Compute/containers
     recipeName: kubernetes

@@ -28,16 +28,24 @@ type EnvConfig struct {
 	// Capabilities describes this environment's static properties for placement.
 	Capabilities CapabilitiesCfg `yaml:"capabilities"`
 
+	// Management UI settings.
+	Management ManagementCfg `yaml:"management"`
+
 	// Terraform execution settings.
 	Terraform TerraformCfg `yaml:"terraform"`
 }
 
+type ManagementCfg struct {
+	Enabled bool   `yaml:"enabled"`
+	Address string `yaml:"address"`
+}
+
 type CapabilitiesCfg struct {
-	Region       string   `yaml:"region"`
-	Sovereignty  string   `yaml:"sovereignty"`
-	Capabilities []string `yaml:"capabilities"`
-	CostPerHour  float64  `yaml:"costPerHour"`
-	MaxReplicas  int32    `yaml:"maxReplicas"`
+	Region       string   `yaml:"region" json:"region"`
+	Sovereignty  string   `yaml:"sovereignty" json:"sovereignty"`
+	Capabilities []string `yaml:"capabilities" json:"capabilities"`
+	CostPerHour  float64  `yaml:"costPerHour" json:"costPerHour"`
+	MaxReplicas  int32    `yaml:"maxReplicas" json:"maxReplicas"`
 }
 
 type ServerConfig struct {
@@ -49,10 +57,10 @@ type ProviderCfg struct {
 }
 
 type RecipeCfg struct {
-	ResourceType string `yaml:"resourceType"`
-	RecipeName   string `yaml:"recipeName"`
-	TemplatePath string `yaml:"templatePath"`
-	Parameters   map[string]string `yaml:"parameters,omitempty"`
+	ResourceType string            `yaml:"resourceType" json:"resourceType"`
+	RecipeName   string            `yaml:"recipeName" json:"recipeName"`
+	TemplatePath string            `yaml:"templatePath" json:"templatePath"`
+	Parameters   map[string]string `yaml:"parameters,omitempty" json:"parameters,omitempty"`
 }
 
 type TerraformCfg struct {
@@ -84,6 +92,9 @@ func LoadConfig(path string) (*EnvConfig, error) {
 	if cfg.Terraform.WorkDir == "" {
 		home, _ := os.UserHomeDir()
 		cfg.Terraform.WorkDir = filepath.Join(home, ".ryobi", "terraform")
+	}
+	if cfg.Management.Address == "" {
+		cfg.Management.Address = "0.0.0.0:9090"
 	}
 
 	// Resolve relative template paths to absolute

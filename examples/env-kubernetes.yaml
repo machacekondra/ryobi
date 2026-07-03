@@ -28,6 +28,10 @@ recipes:
     recipeName: kubevirt
     templatePath: ../recipes/kubevirt-vm
 
+management:
+  enabled: true
+  address: 0.0.0.0:9090
+
 terraform:
   binaryPath: terraform
   workDir: ~/.ryobi/terraform
