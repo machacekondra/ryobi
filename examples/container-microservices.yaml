@@ -1,28 +1,16 @@
-apiVersion: ryobi/v1
-kind: Environment
-metadata:
-  name: production
-providers:
-  kubernetes:
-    scope: default
-recipes:
-  Ryobi.Compute/containers:
-    kubernetes:
-      templateKind: terraform
-      templatePath: ./recipes/kubernetes-pod
-      parameters:
-        namespace: ecommerce
----
+## Ryobi Example: Microservices
+##
+## Deploys a set of microservices: API gateway, user service, order service,
+## and a Redis cache. Placement rules determine which environment handles them.
+
 apiVersion: ryobi/v1
 kind: Application
 metadata:
   name: ecommerce
-  environment: production
 
 resources:
   - name: redis
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: redis
       image: redis:7-alpine
@@ -35,7 +23,6 @@ resources:
 
   - name: user-service
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: user-service
       image: myregistry.io/user-service:v2.1
@@ -46,11 +33,10 @@ resources:
       memory_request: "256Mi"
       env:
         - name: REDIS_URL
-          value: "redis://redis.ecommerce.svc.cluster.local:6379"
+          value: "redis://redis:6379"
 
   - name: order-service
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: order-service
       image: myregistry.io/order-service:v1.8
@@ -61,13 +47,12 @@ resources:
       memory_request: "256Mi"
       env:
         - name: REDIS_URL
-          value: "redis://redis.ecommerce.svc.cluster.local:6379"
+          value: "redis://redis:6379"
         - name: USER_SERVICE_URL
-          value: "http://user-service.ecommerce.svc.cluster.local:8081"
+          value: "http://user-service:8081"
 
   - name: api-gateway
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: api-gateway
       image: myregistry.io/api-gateway:v3.0
@@ -80,6 +65,6 @@ resources:
       memory_limit: "512Mi"
       env:
         - name: USER_SERVICE_URL
-          value: "http://user-service.ecommerce.svc.cluster.local:8081"
+          value: "http://user-service:8081"
         - name: ORDER_SERVICE_URL
-          value: "http://order-service.ecommerce.svc.cluster.local:8082"
+          value: "http://order-service:8082"

@@ -17,25 +17,14 @@ func ValidateEnvironmentUpdate(ctx context.Context, newResource *datamodel.Envir
 	return nil, nil
 }
 
-// ValidateApplicationUpdate validates application properties, including that the referenced environment exists.
+// ValidateApplicationUpdate validates application properties.
+// Note: environment existence is not checked here because environments are
+// registered dynamically by agents and may not exist at app creation time.
+// The environment is validated at dispatch time when resources are deployed.
 func ValidateApplicationUpdate(ctx context.Context, newResource *datamodel.Application, oldResource *datamodel.Application, options *ctrl.Options) (v1.Response, error) {
 	if newResource.Name == "" {
 		return v1.NewBadRequestResponse("application name is required"), nil
 	}
-
-	// Environment is optional — placement engine decides if omitted
-	if newResource.Properties.Environment != "" {
-		// Verify environment exists
-		envID := "/api/v1/ryobi/environments/" + newResource.Properties.Environment
-		_, err := options.DatabaseClient.Get(ctx, envID)
-		if err != nil {
-			if isNotFound(err) {
-				return v1.NewBadRequestResponse("environment '" + newResource.Properties.Environment + "' does not exist"), nil
-			}
-			return nil, err
-		}
-	}
-
 	return nil, nil
 }
 
@@ -71,9 +60,7 @@ func ValidateResourceUpdate(ctx context.Context, newResource *datamodel.Resource
 	if newResource.Properties.ResourceType == "" {
 		return v1.NewBadRequestResponse("resource type is required"), nil
 	}
-	if newResource.Properties.RecipeName == "" {
-		return v1.NewBadRequestResponse("recipe name is required"), nil
-	}
+	// recipeName is optional — placement engine selects if omitted
 	return nil, nil
 }
 

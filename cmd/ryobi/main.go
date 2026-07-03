@@ -155,12 +155,12 @@ func deployApplication(ctx context.Context, client *connections.Client, doc *cli
 		},
 	}
 
-	_, statusCode, err := client.Put(ctx, "/api/v1/applications/"+doc.Metadata.Name, appBody)
+	respBody, statusCode, err := client.Put(ctx, "/api/v1/applications/"+doc.Metadata.Name, appBody)
 	if err != nil {
 		return fmt.Errorf("failed to create application: %w", err)
 	}
 	if statusCode >= 400 {
-		return fmt.Errorf("failed to create application %q (status %d)", doc.Metadata.Name, statusCode)
+		return fmt.Errorf("failed to create application %q: %s", doc.Metadata.Name, extractErrorMessage(respBody, statusCode))
 	}
 
 	output.PrintSuccess("Application %q created", doc.Metadata.Name)
@@ -200,7 +200,7 @@ func deployApplication(ctx context.Context, client *connections.Client, doc *cli
 			// We'll poll based on resource status instead
 			operationURLs = append(operationURLs, path)
 		} else if statusCode >= 400 {
-			return fmt.Errorf("failed to deploy resource %q (status %d)", res.Name, statusCode)
+			return fmt.Errorf("failed to deploy resource %q: %s", res.Name, extractErrorMessage(respBody, statusCode))
 		} else {
 			output.PrintSuccess("Resource %q deployed", res.Name)
 		}
@@ -266,6 +266,18 @@ func waitForResource(ctx context.Context, client *connections.Client, resourcePa
 	}
 }
 
+func extractErrorMessage(body []byte, statusCode int) string {
+	var errResp struct {
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(body, &errResp); err == nil && errResp.Error != nil && errResp.Error.Message != "" {
+		return errResp.Error.Message
+	}
+	return fmt.Sprintf("status %d", statusCode)
+}
+
 func waitForResourceDeletion(ctx context.Context, client *connections.Client, resourcePath string) error {
 	timeout, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
@@ -277,7 +289,7 @@ func waitForResourceDeletion(ctx context.Context, client *connections.Client, re
 		default:
 		}
 
-		_, statusCode, err := client.Get(timeout, resourcePath)
+		body, statusCode, err := client.Get(timeout, resourcePath)
 		if err != nil {
 			time.Sleep(2 * time.Second)
 			continue
@@ -286,6 +298,23 @@ func waitForResourceDeletion(ctx context.Context, client *connections.Client, re
 		// Resource is gone — deletion complete
 		if statusCode == http.StatusNotFound {
 			return nil
+		}
+
+		// Check if the deletion failed
+		var resource map[string]any
+		if json.Unmarshal(body, &resource) == nil {
+			if props, ok := resource["properties"].(map[string]any); ok {
+				if status, ok := props["status"].(map[string]any); ok {
+					state, _ := status["state"].(string)
+					if state == "Failed" {
+						errMsg, _ := status["error"].(string)
+						if errMsg != "" {
+							return fmt.Errorf("deletion failed: %s", errMsg)
+						}
+						return fmt.Errorf("deletion failed")
+					}
+				}
+			}
 		}
 
 		time.Sleep(2 * time.Second)
@@ -400,17 +429,46 @@ func newAppCmd() *cobra.Command {
 				return output.PrintJSON(json.RawMessage(body))
 			}
 
-			headers := []string{"NAME", "ENVIRONMENT"}
+			headers := []string{"NAME", "RESOURCES", "ENVIRONMENTS"}
 			var rows [][]string
 			for _, item := range resp.Value {
 				var app map[string]any
 				_ = json.Unmarshal(item, &app)
 				name, _ := app["name"].(string)
-				env := ""
-				if props, ok := app["properties"].(map[string]any); ok {
-					env, _ = props["environment"].(string)
+
+				// Fetch resources to get count and environments
+				resCount := "0"
+				envSet := map[string]bool{}
+				resBody, sc, err := client.Get(cmd.Context(), "/api/v1/applications/"+name+"/resources")
+				if err == nil && sc == http.StatusOK {
+					var resResp connections.ListResponse
+					if json.Unmarshal(resBody, &resResp) == nil {
+						resCount = fmt.Sprintf("%d", len(resResp.Value))
+						for _, ri := range resResp.Value {
+							var res map[string]any
+							if json.Unmarshal(ri, &res) == nil {
+								if props, ok := res["properties"].(map[string]any); ok {
+									if status, ok := props["status"].(map[string]any); ok {
+										if e, ok := status["environment"].(string); ok && e != "" {
+											envSet[e] = true
+										}
+									}
+								}
+							}
+						}
+					}
 				}
-				rows = append(rows, []string{name, env})
+				envs := ""
+				for e := range envSet {
+					if envs != "" {
+						envs += ", "
+					}
+					envs += e
+				}
+				if envs == "" {
+					envs = "(pending)"
+				}
+				rows = append(rows, []string{name, resCount, envs})
 			}
 			output.PrintTable(headers, rows)
 			return nil
@@ -525,7 +583,7 @@ func newAppCmd() *cobra.Command {
 			}
 
 			fmt.Printf("Application: %s\n\n", args[0])
-			headers := []string{"RESOURCE", "TYPE", "RECIPE", "STATE"}
+			headers := []string{"RESOURCE", "TYPE", "ENVIRONMENT", "RECIPE", "STATE"}
 			var rows [][]string
 			for _, item := range resp.Value {
 				var res map[string]any
@@ -535,10 +593,15 @@ func newAppCmd() *cobra.Command {
 				resType, _ := props["resourceType"].(string)
 				recipe, _ := props["recipeName"].(string)
 				state := ""
+				env := ""
 				if status, ok := props["status"].(map[string]any); ok {
 					state, _ = status["state"].(string)
+					env, _ = status["environment"].(string)
+					if r, ok := status["recipe"].(string); ok && r != "" {
+						recipe = r
+					}
 				}
-				rows = append(rows, []string{name, resType, recipe, state})
+				rows = append(rows, []string{name, resType, env, recipe, state})
 			}
 			output.PrintTable(headers, rows)
 			return nil

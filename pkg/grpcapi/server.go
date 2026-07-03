@@ -238,7 +238,17 @@ func (s *EnvironmentServer) ReportResult(ctx context.Context, req *ReportResultR
 		return &ReportResultResponse{Acknowledged: true}, nil
 	}
 
-	if req.Success {
+	wasDeleting := resource.Properties.Status.State == datamodel.StateDeleting
+
+	if req.Success && wasDeleting {
+		// Delete operation succeeded — remove the resource from database
+		if err := s.db.Delete(ctx, req.ResourceId); err != nil {
+			s.logger.Error(err, "Failed to delete resource record", "resourceId", req.ResourceId)
+		} else {
+			s.logger.Info("Resource deleted from database", "resourceId", req.ResourceId)
+		}
+	} else if req.Success {
+		// Deploy operation succeeded
 		resource.Properties.Status.State = datamodel.StateSucceeded
 		resource.Properties.Status.Error = ""
 		if len(req.Outputs) > 0 {
@@ -247,14 +257,18 @@ func (s *EnvironmentServer) ReportResult(ctx context.Context, req *ReportResultR
 				resource.Properties.Status.Outputs[k] = v
 			}
 		}
+		obj.Data = &resource
+		if err := s.db.Save(ctx, obj, database.WithETag(obj.ETag)); err != nil {
+			s.logger.Error(err, "Failed to save resource status", "resourceId", req.ResourceId)
+		}
 	} else {
+		// Operation failed
 		resource.Properties.Status.State = datamodel.StateFailed
 		resource.Properties.Status.Error = req.ErrorMessage
-	}
-
-	obj.Data = &resource
-	if err := s.db.Save(ctx, obj, database.WithETag(obj.ETag)); err != nil {
-		s.logger.Error(err, "Failed to save resource status", "resourceId", req.ResourceId)
+		obj.Data = &resource
+		if err := s.db.Save(ctx, obj, database.WithETag(obj.ETag)); err != nil {
+			s.logger.Error(err, "Failed to save resource status", "resourceId", req.ResourceId)
+		}
 	}
 
 	// Update operation status

@@ -1,33 +1,13 @@
 ## Ryobi Example: Minimal KubeVirt VM
-##
-## The simplest possible VM deployment — a single Fedora VM with defaults.
-##
-## Usage:
-##   ryobi deploy examples/kubevirt-minimal.yaml
 
-apiVersion: ryobi/v1
-kind: Environment
-metadata:
-  name: dev
-providers:
-  kubernetes:
-    scope: default
-recipes:
-  Ryobi.Compute/virtualMachines:
-    default:
-      templateKind: terraform
-      templatePath: ./recipes/kubevirt-vm
----
 apiVersion: ryobi/v1
 kind: Application
 metadata:
   name: simple-vm
-  environment: dev
 
 resources:
   - name: my-vm
     type: Ryobi.Compute/virtualMachines
-    recipe: default
     parameters:
       name: my-vm
       memory: 1Gi

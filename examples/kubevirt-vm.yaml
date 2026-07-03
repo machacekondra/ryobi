@@ -1,48 +1,15 @@
 ## Ryobi Example: KubeVirt Virtual Machine
 ##
-## This example deploys a Fedora VM on a Kubernetes cluster with KubeVirt installed.
-## It uses the built-in kubevirt-vm recipe.
-##
-## Prerequisites:
-##   - Kubernetes cluster with KubeVirt and CDI installed
-##   - kubeconfig accessible to ryobid
-##
-## Usage:
-##   ryobi deploy examples/kubevirt-vm.yaml
-##   ryobi app status fedora-vm-app
-##   ryobi resource show fedora-vm --app fedora-vm-app
+## Deploys a Fedora VM using placement rules.
 
-apiVersion: ryobi/v1
-kind: Environment
-metadata:
-  name: kubevirt-lab
-providers:
-  kubernetes:
-    scope: default
-recipes:
-  Ryobi.Compute/virtualMachines:
-    kubevirt:
-      templateKind: terraform
-      templatePath: ./recipes/kubevirt-vm
-      parameters:
-        namespace: ryobi-vms
-        create_namespace: true
-recipeConfig:
-  terraform:
-    providers:
-      kubernetes:
-        config_path: "~/.kube/config"
----
 apiVersion: ryobi/v1
 kind: Application
 metadata:
   name: fedora-vm-app
-  environment: kubevirt-lab
 
 resources:
   - name: fedora-vm
     type: Ryobi.Compute/virtualMachines
-    recipe: kubevirt
     parameters:
       name: fedora-dev
       cpu_cores: 2

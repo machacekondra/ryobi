@@ -121,12 +121,14 @@ func (d *ResourceDispatcher) Run(ctx context.Context, request *async.AsyncReques
 		ApplicationName: app.Name,
 	}
 
-	// Update resource status to deploying
+	// Update resource status with placement result
 	if opType == OperationType_DEPLOY {
 		resource.Properties.Status.State = datamodel.StateDeploying
 	} else {
 		resource.Properties.Status.State = datamodel.StateDeleting
 	}
+	resource.Properties.Status.Environment = environmentName
+	resource.Properties.Status.Recipe = recipeName
 	resource.Properties.Status.Error = ""
 	obj.Data = &resource
 	_ = d.db.Save(ctx, obj, database.WithETag(obj.ETag))

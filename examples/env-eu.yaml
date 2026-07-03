@@ -24,3 +24,5 @@ recipes:
   - resourceType: Ryobi.Compute/containers
     recipeName: kubernetes
     templatePath: ../recipes/kubernetes-pod
+    parameters:
+      namespace: eu

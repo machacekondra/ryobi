@@ -3,18 +3,18 @@
 ## Prerequisites:
 ##   1. Start ryobid:       ./dist/ryobid
 ##   2. Start env agent:    ./dist/ryobi-env examples/env-kubernetes.yaml
-##   3. Deploy this app:    ./dist/ryobi deploy examples/container-nginx.yaml
+##   3. Create placement:   ./dist/ryobi placement create containers \
+##                            --resource-type Ryobi.Compute/containers
+##   4. Deploy this app:    ./dist/ryobi deploy examples/container-nginx.yaml
 
 apiVersion: ryobi/v1
 kind: Application
 metadata:
   name: nginx-app
-  environment: dev
 
 resources:
   - name: nginx
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: nginx
       image: nginx:1.25-alpine

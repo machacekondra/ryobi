@@ -1,28 +1,16 @@
-apiVersion: ryobi/v1
-kind: Environment
-metadata:
-  name: staging
-providers:
-  kubernetes:
-    scope: default
-recipes:
-  Ryobi.Compute/containers:
-    kubernetes:
-      templateKind: terraform
-      templatePath: ./recipes/kubernetes-pod
-      parameters:
-        namespace: staging
----
+## Ryobi Example: Web Application with Database
+##
+## Deploys a web app with a PostgreSQL database and frontend.
+## Placement rules determine which environment handles the resources.
+
 apiVersion: ryobi/v1
 kind: Application
 metadata:
   name: webapp
-  environment: staging
 
 resources:
   - name: database
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: postgres
       image: postgres:16-alpine
@@ -41,7 +29,6 @@ resources:
 
   - name: api
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: api
       image: myregistry.io/webapp-api:latest
@@ -54,13 +41,12 @@ resources:
       memory_limit: "512Mi"
       env:
         - name: DATABASE_URL
-          value: "postgres://webapp:s3cret-p@ssw0rd@postgres.staging.svc.cluster.local:5432/webapp"
+          value: "postgres://webapp:s3cret-p@ssw0rd@postgres:5432/webapp"
         - name: LOG_LEVEL
           value: info
 
   - name: frontend
     type: Ryobi.Compute/containers
-    recipe: kubernetes
     parameters:
       name: frontend
       image: myregistry.io/webapp-frontend:latest
@@ -71,4 +57,4 @@ resources:
       memory_request: "128Mi"
       env:
         - name: API_URL
-          value: "http://api.staging.svc.cluster.local:8080"
+          value: "http://api:8080"
