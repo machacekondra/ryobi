@@ -1,0 +1,52 @@
+{{- if .Values.serviceAccount.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "ryobi-env.fullname" . }}
+  labels:
+    {{- include "ryobi-env.labels" . | nindent 4 }}
+rules:
+  # Manage deployments (kubernetes-pod recipe)
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Watch pods for status reporting
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  # Manage namespaces (create_namespace option)
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "create"]
+  # Manage services, configmaps, secrets
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # KubeVirt VMs (kubevirt-vm recipe)
+  - apiGroups: ["kubevirt.io"]
+    resources: ["virtualmachines", "virtualmachineinstances"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # CDI DataVolumes (kubevirt-vm recipe)
+  - apiGroups: ["cdi.kubevirt.io"]
+    resources: ["datavolumes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # PVCs (for disk volumes)
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "ryobi-env.fullname" . }}
+  labels:
+    {{- include "ryobi-env.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "ryobi-env.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ryobi-env.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

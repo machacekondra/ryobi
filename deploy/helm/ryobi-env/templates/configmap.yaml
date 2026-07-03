@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ryobi-env.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "ryobi-env.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    name: {{ .Values.environmentName }}
+
+    server:
+      grpcAddress: {{ .Values.server.grpcAddress }}
+
+    providers:
+      kubernetes:
+        scope: {{ .Values.managedNamespace }}
+
+    terraformProviders:
+      kubernetes:
+        config_path: ""
+
+    capabilities:
+      {{- if .Values.capabilities.region }}
+      region: {{ .Values.capabilities.region }}
+      {{- end }}
+      {{- if .Values.capabilities.sovereignty }}
+      sovereignty: {{ .Values.capabilities.sovereignty }}
+      {{- end }}
+      {{- if .Values.capabilities.capabilities }}
+      capabilities:
+        {{- toYaml .Values.capabilities.capabilities | nindent 8 }}
+      {{- end }}
+      costPerHour: {{ .Values.capabilities.costPerHour }}
+      maxReplicas: {{ .Values.capabilities.maxReplicas }}
+
+    recipes:
+      {{- range .Values.recipes }}
+      - resourceType: {{ .resourceType }}
+        recipeName: {{ .recipeName }}
+        templatePath: {{ .templatePath }}
+        {{- if .parameters }}
+        parameters:
+          {{- range $k, $v := .parameters }}
+          {{ $k }}: "{{ $v }}"
+          {{- end }}
+        {{- end }}
+      {{- end }}
+
+    terraform:
+      binaryPath: /usr/bin/terraform
+      workDir: {{ .Values.terraform.workDir }}
+      stateBackend: {{ .Values.terraform.stateBackend }}

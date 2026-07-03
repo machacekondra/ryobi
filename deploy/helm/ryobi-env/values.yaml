@@ -1,0 +1,54 @@
+image:
+  repository: ghcr.io/ryobi-project/ryobi-env
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# Environment name — this is how the agent registers with ryobid
+environmentName: dev
+
+# ryobid server connection
+server:
+  grpcAddress: ryobid.ryobi-system.svc.cluster.local:9001
+
+# Capabilities for the placement engine
+capabilities:
+  region: ""
+  sovereignty: ""
+  capabilities: []
+  costPerHour: 0
+  maxReplicas: 100
+
+# Recipes this environment supports
+recipes:
+  - resourceType: Ryobi.Compute/containers
+    recipeName: kubernetes
+    templatePath: /recipes/kubernetes-pod
+
+# Terraform settings
+terraform:
+  workDir: /var/lib/ryobi/terraform
+  stateBackend: local
+
+# Resource requests/limits for the agent pod
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# ServiceAccount settings
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Namespace where the agent manages resources
+# The agent's RBAC will have permissions in this namespace
+managedNamespace: default
+
+# Extra environment variables
+extraEnv: []

@@ -11,7 +11,10 @@ GOFLAGS = -ldflags "-X github.com/ryobi-project/ryobi/pkg/version.Version=$(VERS
 
 DIST_DIR = dist
 
-.PHONY: all build build-cli build-server build-env test lint clean install proto
+IMAGE_REGISTRY ?= ghcr.io/ryobi-project
+IMAGE_TAG ?= $(VERSION)
+
+.PHONY: all build build-cli build-server build-env test lint clean install proto image-env image-server
 
 all: build
 
@@ -53,3 +56,15 @@ install: build
 	cp $(DIST_DIR)/$(BINARY_CLI) /usr/local/bin/$(BINARY_CLI)
 	cp $(DIST_DIR)/$(BINARY_ENV) /usr/local/bin/$(BINARY_ENV)
 	@echo "Installed $(BINARY_CLI) and $(BINARY_ENV) to /usr/local/bin/"
+
+image-env:
+	podman build -t $(IMAGE_REGISTRY)/ryobi-env:$(IMAGE_TAG) \
+		--build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) \
+		-f deploy/images/ryobi-env/Containerfile .
+
+image-server:
+	podman build -t $(IMAGE_REGISTRY)/ryobid:$(IMAGE_TAG) \
+		--build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) \
+		-f deploy/Containerfile .
+
+images: image-env image-server

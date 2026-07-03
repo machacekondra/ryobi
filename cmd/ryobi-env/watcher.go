@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/ryobi-project/ryobi/pkg/grpcapi"
@@ -46,32 +47,42 @@ func newStatusWatcher(client grpcapi.EnvironmentServiceClient, cfg *EnvConfig, l
 		interval:  15 * time.Second,
 	}
 
-	// Try to create a Kubernetes client from the terraform provider config
+	// Try to create a Kubernetes client
+	var k8sConfig *rest.Config
+	var k8sErr error
+
 	if kubeCfg, ok := cfg.TerraformProviders["kubernetes"]; ok {
-		if configPath, ok := kubeCfg["config_path"].(string); ok {
+		configPath, _ := kubeCfg["config_path"].(string)
+		if configPath != "" {
 			// Expand ~ to home directory
 			if len(configPath) > 1 && configPath[:2] == "~/" {
 				if home, err := os.UserHomeDir(); err == nil {
 					configPath = home + configPath[1:]
 				}
 			}
-			config, err := clientcmd.BuildConfigFromFlags("", configPath)
-			if err != nil {
-				logger.Error(err, "Failed to build kubeconfig", "path", configPath)
-			} else {
-				k8sClient, err := kubernetes.NewForConfig(config)
-				if err != nil {
-					logger.Error(err, "Failed to create Kubernetes client")
-				} else {
-					sw.k8s = k8sClient
-					logger.Info("Kubernetes client initialized for status watching", "kubeconfig", configPath)
-				}
+			k8sConfig, k8sErr = clientcmd.BuildConfigFromFlags("", configPath)
+			if k8sErr != nil {
+				logger.Error(k8sErr, "Failed to build kubeconfig", "path", configPath)
 			}
-		} else {
-			logger.Info("No config_path in kubernetes terraform provider, status watching disabled")
 		}
-	} else {
-		logger.Info("No kubernetes terraform provider configured, status watching disabled")
+	}
+
+	// Fall back to in-cluster config (when running inside K8s)
+	if k8sConfig == nil {
+		k8sConfig, k8sErr = rest.InClusterConfig()
+		if k8sErr != nil {
+			logger.Info("No Kubernetes config available, status watching disabled")
+		}
+	}
+
+	if k8sConfig != nil {
+		k8sClient, err := kubernetes.NewForConfig(k8sConfig)
+		if err != nil {
+			logger.Error(err, "Failed to create Kubernetes client")
+		} else {
+			sw.k8s = k8sClient
+			logger.Info("Kubernetes client initialized for status watching")
+		}
 	}
 
 	return sw
