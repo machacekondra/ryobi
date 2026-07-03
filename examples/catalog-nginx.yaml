@@ -1,0 +1,40 @@
+## Ryobi Catalog Item: Nginx Web Server
+##
+## Register this catalog item, then deploy instances from it:
+##
+##   # Register (admin)
+##   ryobi deploy examples/catalog-nginx.yaml
+##
+##   # Deploy an instance (user)
+##   ryobi catalog deploy nginx-webserver --name my-site
+##   ryobi catalog deploy nginx-webserver --name another-site --set replicas=5
+
+apiVersion: ryobi/v1
+kind: CatalogItem
+metadata:
+  name: nginx-webserver
+
+properties:
+  description: "Nginx web server with configurable replicas"
+  icon: "🌐"
+  category: web
+  resources:
+    - name: nginx
+      type: Ryobi.Compute/containers
+      parameters:
+        name: nginx
+        image: nginx:1.25-alpine
+        replicas: 2
+        ports:
+          - container_port: 80
+        cpu_request: "100m"
+        memory_request: "64Mi"
+  parameters:
+    - name: replicas
+      description: "Number of nginx replicas"
+      type: number
+      default: 2
+    - name: image
+      description: "Container image"
+      type: string
+      default: "nginx:1.25-alpine"

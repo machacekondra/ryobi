@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,6 +34,7 @@ func main() {
 	rootCmd.AddCommand(newResourceCmd())
 	rootCmd.AddCommand(newRecipeCmd())
 	rootCmd.AddCommand(newPlacementCmd())
+	rootCmd.AddCommand(newCatalogCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
@@ -106,6 +108,14 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, doc := range docs {
+		if doc.Kind == cliyaml.KindCatalogItem {
+			if err := deployCatalogItem(ctx, client, &doc); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, doc := range docs {
 		if doc.Kind == cliyaml.KindApplication {
 			if envOverride != "" {
 				doc.Metadata.Environment = envOverride
@@ -116,6 +126,26 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	return nil
+}
+
+func deployCatalogItem(ctx context.Context, client *connections.Client, doc *cliyaml.Document) error {
+	output.PrintStatus("Registering catalog item %q...", doc.Metadata.Name)
+
+	body := map[string]any{
+		"name":       doc.Metadata.Name,
+		"properties": doc.Properties,
+	}
+
+	respBody, statusCode, err := client.Put(ctx, "/api/v1/catalog-items/"+doc.Metadata.Name, body)
+	if err != nil {
+		return fmt.Errorf("failed to register catalog item: %w", err)
+	}
+	if statusCode >= 400 {
+		return fmt.Errorf("failed to register catalog item %q: %s", doc.Metadata.Name, extractErrorMessage(respBody, statusCode))
+	}
+
+	output.PrintSuccess("Catalog item %q registered", doc.Metadata.Name)
 	return nil
 }
 
@@ -913,4 +943,219 @@ func newPlacementCmd() *cobra.Command {
 	})
 
 	return cmd
+}
+
+// --- catalog ---
+
+func newCatalogCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "catalog",
+		Short: "Manage catalog items (application templates)",
+	}
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "list",
+		Short: "List catalog items",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			body, _, err := client.Get(cmd.Context(), "/api/v1/catalog-items")
+			if err != nil {
+				return err
+			}
+
+			var resp connections.ListResponse
+			if err := json.Unmarshal(body, &resp); err != nil {
+				return output.PrintJSON(json.RawMessage(body))
+			}
+
+			headers := []string{"NAME", "DESCRIPTION", "CATEGORY", "RESOURCES", "PARAMETERS"}
+			var rows [][]string
+			for _, item := range resp.Value {
+				var ci map[string]any
+				_ = json.Unmarshal(item, &ci)
+				name, _ := ci["name"].(string)
+				props, _ := ci["properties"].(map[string]any)
+				desc, _ := props["description"].(string)
+				cat, _ := props["category"].(string)
+				resCount := "0"
+				if res, ok := props["resources"].([]any); ok {
+					resCount = fmt.Sprintf("%d", len(res))
+				}
+				paramCount := "0"
+				if params, ok := props["parameters"].([]any); ok {
+					paramCount = fmt.Sprintf("%d", len(params))
+				}
+				rows = append(rows, []string{name, desc, cat, resCount, paramCount})
+			}
+			output.PrintTable(headers, rows)
+			return nil
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "show [name]",
+		Short: "Show catalog item details",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			body, statusCode, err := client.Get(cmd.Context(), "/api/v1/catalog-items/"+args[0])
+			if err != nil {
+				return err
+			}
+			if statusCode == http.StatusNotFound {
+				return fmt.Errorf("catalog item %q not found", args[0])
+			}
+			return output.PrintJSON(json.RawMessage(body))
+		},
+	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "delete [name]",
+		Short: "Delete a catalog item",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			_, statusCode, err := client.Delete(cmd.Context(), "/api/v1/catalog-items/"+args[0])
+			if err != nil {
+				return err
+			}
+			if statusCode >= 400 && statusCode != http.StatusNoContent {
+				return fmt.Errorf("failed to delete catalog item (status %d)", statusCode)
+			}
+			output.PrintSuccess("Catalog item %q deleted", args[0])
+			return nil
+		},
+	})
+
+	deployCmd := &cobra.Command{
+		Use:   "deploy [catalog-item-name]",
+		Short: "Deploy an application from a catalog item",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client := getClient(cmd)
+			ctx := cmd.Context()
+			catalogName := args[0]
+			appName, _ := cmd.Flags().GetString("name")
+			if appName == "" {
+				appName = catalogName
+			}
+			wait, _ := cmd.Flags().GetBool("wait")
+
+			// Fetch the catalog item
+			body, statusCode, err := client.Get(ctx, "/api/v1/catalog-items/"+catalogName)
+			if err != nil {
+				return err
+			}
+			if statusCode == http.StatusNotFound {
+				return fmt.Errorf("catalog item %q not found", catalogName)
+			}
+
+			var catalogItem map[string]any
+			if err := json.Unmarshal(body, &catalogItem); err != nil {
+				return fmt.Errorf("failed to parse catalog item: %w", err)
+			}
+
+			props, _ := catalogItem["properties"].(map[string]any)
+			resources, _ := props["resources"].([]any)
+
+			// Apply parameter overrides from --set flags
+			setValues, _ := cmd.Flags().GetStringArray("set")
+			paramOverrides := parseSetValues(setValues)
+
+			// Create the application
+			output.PrintStatus("Creating application %q from catalog item %q...", appName, catalogName)
+			appBody := map[string]any{
+				"name": appName,
+				"properties": map[string]any{
+					"catalogItem": catalogName,
+				},
+			}
+			_, statusCode, err = client.Put(ctx, "/api/v1/applications/"+appName, appBody)
+			if err != nil {
+				return fmt.Errorf("failed to create application: %w", err)
+			}
+			if statusCode >= 400 {
+				return fmt.Errorf("failed to create application %q: status %d", appName, statusCode)
+			}
+
+			// Deploy each resource from the catalog template
+			var operationURLs []string
+			for _, r := range resources {
+				res, ok := r.(map[string]any)
+				if !ok {
+					continue
+				}
+				resName, _ := res["name"].(string)
+				resType, _ := res["type"].(string)
+
+				output.PrintStatus("Deploying resource %q (%s)...", resName, resType)
+
+				resParams, _ := res["parameters"].(map[string]any)
+				if resParams == nil {
+					resParams = map[string]any{}
+				}
+				for k, v := range paramOverrides {
+					resParams[k] = v
+				}
+
+				resBody := map[string]any{
+					"name": resName,
+					"properties": map[string]any{
+						"resourceType": resType,
+						"parameters":   resParams,
+					},
+				}
+				if recipe, ok := res["recipe"].(string); ok && recipe != "" {
+					resBody["properties"].(map[string]any)["recipeName"] = recipe
+				}
+
+				path := fmt.Sprintf("/api/v1/applications/%s/resources/%s", appName, resName)
+				_, statusCode, err := client.Put(ctx, path, resBody)
+				if err != nil {
+					output.PrintError("Failed to deploy resource %q: %v", resName, err)
+					continue
+				}
+				if statusCode == http.StatusAccepted {
+					output.PrintStatus("Resource %q deployment queued", resName)
+					operationURLs = append(operationURLs, path)
+				} else if statusCode >= 400 {
+					output.PrintError("Failed to deploy resource %q: status %d", resName, statusCode)
+				}
+			}
+
+			if wait && len(operationURLs) > 0 {
+				output.PrintStatus("Waiting for deployments to complete...")
+				var failed bool
+				for _, url := range operationURLs {
+					if err := waitForResource(ctx, client, url); err != nil {
+						output.PrintError("%v", err)
+						failed = true
+					}
+				}
+				if failed {
+					return fmt.Errorf("application %q deployment completed with errors", appName)
+				}
+			}
+
+			output.PrintSuccess("Application %q deployed from catalog item %q", appName, catalogName)
+			return nil
+		},
+	}
+	deployCmd.Flags().String("name", "", "Application name (defaults to catalog item name)")
+	deployCmd.Flags().Bool("wait", true, "Wait for deployments to complete")
+	deployCmd.Flags().StringArray("set", nil, "Override parameters (key=value)")
+	cmd.AddCommand(deployCmd)
+
+	return cmd
+}
+
+func parseSetValues(values []string) map[string]any {
+	result := make(map[string]any)
+	for _, v := range values {
+		parts := strings.SplitN(v, "=", 2)
+		if len(parts) == 2 {
+			result[parts[0]] = parts[1]
+		}
+	}
+	return result
 }

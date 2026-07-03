@@ -127,11 +127,48 @@ const (
 	StateDeleting  = "Deleting"
 )
 
+// CatalogItem is a reusable application template. Users deploy instances from catalog items.
+type CatalogItem struct {
+	ID         string                `json:"id"`
+	Name       string                `json:"name"`
+	Type       string                `json:"type"`
+	Properties CatalogItemProperties `json:"properties"`
+	CreatedAt  time.Time             `json:"createdAt,omitempty"`
+	UpdatedAt  time.Time             `json:"updatedAt,omitempty"`
+}
+
+// CatalogItemProperties defines the template content.
+type CatalogItemProperties struct {
+	Description string              `json:"description,omitempty"`
+	Icon        string              `json:"icon,omitempty"`
+	Category    string              `json:"category,omitempty"`
+	Resources   []CatalogResource   `json:"resources"`
+	Parameters  []CatalogParameter  `json:"parameters,omitempty"`
+}
+
+// CatalogResource defines a resource template within a catalog item.
+type CatalogResource struct {
+	Name       string         `json:"name"`
+	Type       string         `json:"type"`
+	Recipe     string         `json:"recipe,omitempty"`
+	Parameters map[string]any `json:"parameters,omitempty"`
+}
+
+// CatalogParameter defines a user-configurable parameter exposed by the catalog item.
+type CatalogParameter struct {
+	Name         string `json:"name"`
+	Description  string `json:"description,omitempty"`
+	Type         string `json:"type,omitempty"`         // string, number, bool
+	Default      any    `json:"default,omitempty"`
+	Required     bool   `json:"required,omitempty"`
+}
+
 // Resource type constants.
 const (
-	EnvironmentResourceType = "ryobi/environments"
-	ApplicationResourceType = "ryobi/applications"
-	ResourceResourceType    = "ryobi/resources"
+	EnvironmentResourceType  = "ryobi/environments"
+	ApplicationResourceType  = "ryobi/applications"
+	ResourceResourceType     = "ryobi/resources"
+	CatalogItemResourceType  = "ryobi/catalog-items"
 )
 
 // Well-known resource type identifiers for recipes.

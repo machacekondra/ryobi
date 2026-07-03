@@ -1,0 +1,56 @@
+## Ryobi Catalog Item: Web App Stack
+##
+## A full web application stack: PostgreSQL database + API server.
+##
+##   ryobi catalog deploy webapp-stack --name my-project
+##   ryobi catalog deploy webapp-stack --name staging --set api_image=myapp:v2
+
+apiVersion: ryobi/v1
+kind: CatalogItem
+metadata:
+  name: webapp-stack
+
+properties:
+  description: "Full web application stack with PostgreSQL and API server"
+  icon: "🚀"
+  category: application
+  resources:
+    - name: database
+      type: Ryobi.Compute/containers
+      parameters:
+        name: postgres
+        image: postgres:16-alpine
+        replicas: 1
+        ports:
+          - container_port: 5432
+        cpu_request: "250m"
+        memory_request: "256Mi"
+        env:
+          - name: POSTGRES_DB
+            value: app
+          - name: POSTGRES_USER
+            value: app
+          - name: POSTGRES_PASSWORD
+            value: changeme
+    - name: api
+      type: Ryobi.Compute/containers
+      parameters:
+        name: api
+        image: myregistry.io/api:latest
+        replicas: 2
+        ports:
+          - container_port: 8080
+        cpu_request: "250m"
+        memory_request: "256Mi"
+        env:
+          - name: DATABASE_URL
+            value: "postgres://app:changeme@postgres:5432/app"
+  parameters:
+    - name: api_image
+      description: "API server container image"
+      type: string
+      default: "myregistry.io/api:latest"
+    - name: replicas
+      description: "API server replicas"
+      type: number
+      default: 2

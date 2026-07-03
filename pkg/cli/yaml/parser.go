@@ -11,6 +11,7 @@ import (
 const (
 	KindApplication = "Application"
 	KindEnvironment = "Environment"
+	KindCatalogItem = "CatalogItem"
 	APIVersionV1    = "ryobi/v1"
 )
 
@@ -62,8 +63,10 @@ func Validate(doc *Document) error {
 		return validateApplication(doc)
 	case KindEnvironment:
 		return validateEnvironment(doc)
+	case KindCatalogItem:
+		return validateCatalogItem(doc)
 	default:
-		return fmt.Errorf("unsupported kind %q, expected %q or %q", doc.Kind, KindApplication, KindEnvironment)
+		return fmt.Errorf("unsupported kind %q", doc.Kind)
 	}
 }
 
@@ -80,6 +83,13 @@ func validateApplication(doc *Document) error {
 			return fmt.Errorf("resources[%d].type is required", i)
 		}
 		// recipe is optional — placement engine will select if omitted
+	}
+	return nil
+}
+
+func validateCatalogItem(doc *Document) error {
+	if doc.Metadata.Name == "" {
+		return fmt.Errorf("catalog item metadata.name is required")
 	}
 	return nil
 }

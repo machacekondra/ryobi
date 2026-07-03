@@ -97,4 +97,12 @@ func SetupRoutes(router *gateway.Router, opts ctrl.Options) {
 		Put:    resctrl.NewGenericPutFactory(rootScope),
 		Delete: resctrl.NewGenericDeleteFactory(rootScope),
 	})
+
+	// Catalog Items: reusable application templates (sync CRUD)
+	router.RegisterResourceRoutes("/api/v1/catalog-items", "ryobi/catalog-items", gateway.ResourceFactories{
+		List:   resctrl.NewGenericListFactory(rootScope),
+		Get:    resctrl.NewGenericGetFactory(rootScope),
+		Put:    resctrl.NewGenericPutFactory(rootScope),
+		Delete: resctrl.NewGenericDeleteFactory(rootScope),
+	})
 }

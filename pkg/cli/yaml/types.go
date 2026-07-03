@@ -13,6 +13,9 @@ type Document struct {
 	Providers    map[string]ProviderSpec             `yaml:"providers,omitempty"`
 	Recipes      map[string]map[string]RecipeDefSpec `yaml:"recipes,omitempty"`
 	RecipeConfig *RecipeConfigSpec                   `yaml:"recipeConfig,omitempty"`
+
+	// CatalogItem fields — stored as generic properties
+	Properties map[string]any `yaml:"properties,omitempty"`
 }
 
 // Metadata holds resource metadata.
