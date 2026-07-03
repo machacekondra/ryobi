@@ -23,18 +23,17 @@ func ValidateApplicationUpdate(ctx context.Context, newResource *datamodel.Appli
 		return v1.NewBadRequestResponse("application name is required"), nil
 	}
 
-	if newResource.Properties.Environment == "" {
-		return v1.NewBadRequestResponse("application must reference an environment"), nil
-	}
-
-	// Verify environment exists
-	envID := "/api/v1/ryobi/environments/" + newResource.Properties.Environment
-	_, err := options.DatabaseClient.Get(ctx, envID)
-	if err != nil {
-		if isNotFound(err) {
-			return v1.NewBadRequestResponse("environment '" + newResource.Properties.Environment + "' does not exist"), nil
+	// Environment is optional — placement engine decides if omitted
+	if newResource.Properties.Environment != "" {
+		// Verify environment exists
+		envID := "/api/v1/ryobi/environments/" + newResource.Properties.Environment
+		_, err := options.DatabaseClient.Get(ctx, envID)
+		if err != nil {
+			if isNotFound(err) {
+				return v1.NewBadRequestResponse("environment '" + newResource.Properties.Environment + "' does not exist"), nil
+			}
+			return nil, err
 		}
-		return nil, err
 	}
 
 	return nil, nil

@@ -23,6 +23,7 @@ const (
 	EnvironmentService_Unregister_FullMethodName     = "/ryobi.environment.v1.EnvironmentService/Unregister"
 	EnvironmentService_WatchResources_FullMethodName = "/ryobi.environment.v1.EnvironmentService/WatchResources"
 	EnvironmentService_ReportResult_FullMethodName   = "/ryobi.environment.v1.EnvironmentService/ReportResult"
+	EnvironmentService_Heartbeat_FullMethodName      = "/ryobi.environment.v1.EnvironmentService/Heartbeat"
 )
 
 // EnvironmentServiceClient is the client API for EnvironmentService service.
@@ -30,21 +31,12 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // EnvironmentService is the gRPC service exposed by ryobid.
-// Environment agents connect to this service to register themselves,
-// watch for resource operations, and report results.
 type EnvironmentServiceClient interface {
-	// Register registers an environment agent with the server.
-	// The server stores the environment configuration and marks it as active.
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
-	// Unregister removes an environment agent registration.
 	Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error)
-	// WatchResources opens a server-streaming RPC. The server pushes
-	// resource operation events (deploy/delete) to the environment agent
-	// whenever a resource targeting this environment is created or deleted.
 	WatchResources(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ResourceEvent], error)
-	// ReportResult is called by the environment agent to report the
-	// outcome of a resource operation (success or failure with outputs).
 	ReportResult(ctx context.Context, in *ReportResultRequest, opts ...grpc.CallOption) (*ReportResultResponse, error)
+	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 }
 
 type environmentServiceClient struct {
@@ -104,26 +96,27 @@ func (c *environmentServiceClient) ReportResult(ctx context.Context, in *ReportR
 	return out, nil
 }
 
+func (c *environmentServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HeartbeatResponse)
+	err := c.cc.Invoke(ctx, EnvironmentService_Heartbeat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EnvironmentServiceServer is the server API for EnvironmentService service.
 // All implementations must embed UnimplementedEnvironmentServiceServer
 // for forward compatibility.
 //
 // EnvironmentService is the gRPC service exposed by ryobid.
-// Environment agents connect to this service to register themselves,
-// watch for resource operations, and report results.
 type EnvironmentServiceServer interface {
-	// Register registers an environment agent with the server.
-	// The server stores the environment configuration and marks it as active.
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
-	// Unregister removes an environment agent registration.
 	Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error)
-	// WatchResources opens a server-streaming RPC. The server pushes
-	// resource operation events (deploy/delete) to the environment agent
-	// whenever a resource targeting this environment is created or deleted.
 	WatchResources(*WatchRequest, grpc.ServerStreamingServer[ResourceEvent]) error
-	// ReportResult is called by the environment agent to report the
-	// outcome of a resource operation (success or failure with outputs).
 	ReportResult(context.Context, *ReportResultRequest) (*ReportResultResponse, error)
+	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
 	mustEmbedUnimplementedEnvironmentServiceServer()
 }
 
@@ -145,6 +138,9 @@ func (UnimplementedEnvironmentServiceServer) WatchResources(*WatchRequest, grpc.
 }
 func (UnimplementedEnvironmentServiceServer) ReportResult(context.Context, *ReportResultRequest) (*ReportResultResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportResult not implemented")
+}
+func (UnimplementedEnvironmentServiceServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Heartbeat not implemented")
 }
 func (UnimplementedEnvironmentServiceServer) mustEmbedUnimplementedEnvironmentServiceServer() {}
 func (UnimplementedEnvironmentServiceServer) testEmbeddedByValue()                            {}
@@ -232,6 +228,24 @@ func _EnvironmentService_ReportResult_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnvironmentService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HeartbeatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnvironmentServiceServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EnvironmentService_Heartbeat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnvironmentServiceServer).Heartbeat(ctx, req.(*HeartbeatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EnvironmentService_ServiceDesc is the grpc.ServiceDesc for EnvironmentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -250,6 +264,10 @@ var EnvironmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportResult",
 			Handler:    _EnvironmentService_ReportResult_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _EnvironmentService_Heartbeat_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

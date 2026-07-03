@@ -25,8 +25,19 @@ type EnvConfig struct {
 	// Recipes maps resource types to recipe definitions.
 	Recipes []RecipeCfg `yaml:"recipes"`
 
+	// Capabilities describes this environment's static properties for placement.
+	Capabilities CapabilitiesCfg `yaml:"capabilities"`
+
 	// Terraform execution settings.
 	Terraform TerraformCfg `yaml:"terraform"`
+}
+
+type CapabilitiesCfg struct {
+	Region       string   `yaml:"region"`
+	Sovereignty  string   `yaml:"sovereignty"`
+	Capabilities []string `yaml:"capabilities"`
+	CostPerHour  float64  `yaml:"costPerHour"`
+	MaxReplicas  int32    `yaml:"maxReplicas"`
 }
 
 type ServerConfig struct {

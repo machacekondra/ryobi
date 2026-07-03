@@ -21,6 +21,7 @@ import (
 	"github.com/ryobi-project/ryobi/pkg/components/queue"
 	"github.com/ryobi-project/ryobi/pkg/gateway"
 	"github.com/ryobi-project/ryobi/pkg/grpcapi"
+	"github.com/ryobi-project/ryobi/pkg/placement"
 	"github.com/ryobi-project/ryobi/pkg/resources/datamodel"
 	"github.com/ryobi-project/ryobi/pkg/resources/setup"
 	"github.com/ryobi-project/ryobi/pkg/version"
@@ -58,8 +59,9 @@ func main() {
 	router := gateway.NewRouter(ctrlOpts, logger)
 	setup.SetupRoutes(router, ctrlOpts)
 
-	// Set up async worker — dispatches resource events to environment agents via gRPC
-	dispatcher := grpcapi.NewResourceDispatcher(db, envServer)
+	// Set up placement engine and async worker
+	placementEngine := placement.NewEngine()
+	dispatcher := grpcapi.NewResourceDispatcher(db, envServer, placementEngine)
 	registry := async.NewControllerRegistry()
 	registry.Register(datamodel.ResourceResourceType, v1.OperationPut, dispatcher)
 	registry.Register(datamodel.ResourceResourceType, v1.OperationDelete, dispatcher)

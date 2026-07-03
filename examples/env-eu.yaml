@@ -1,0 +1,26 @@
+# EU environment agent — runs in eu-west-1 with EU sovereignty
+name: prod-eu
+
+server:
+  grpcAddress: localhost:9001
+
+providers:
+  kubernetes:
+    scope: default
+
+terraformProviders:
+  kubernetes:
+    config_path: "~/.kube/config"
+
+capabilities:
+  region: eu-west-1
+  sovereignty: eu
+  capabilities:
+    - standard
+  costPerHour: 0.50
+  maxReplicas: 50
+
+recipes:
+  - resourceType: Ryobi.Compute/containers
+    recipeName: kubernetes
+    templatePath: ../recipes/kubernetes-pod

@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 
 	v1 "github.com/ryobi-project/ryobi/pkg/api/v1"
 	ctrl "github.com/ryobi-project/ryobi/pkg/api/frontend/controller"
 	"github.com/ryobi-project/ryobi/pkg/components/database"
+	"github.com/ryobi-project/ryobi/pkg/placement"
 	"github.com/ryobi-project/ryobi/pkg/resources/datamodel"
 )
 
@@ -19,21 +21,39 @@ import (
 type EnvironmentServer struct {
 	UnimplementedEnvironmentServiceServer
 
-	mu       sync.RWMutex
-	watchers map[string][]chan *ResourceEvent // environment name -> list of event channels
-	db       database.Client
-	sm       ctrl.StatusManager
-	logger   logr.Logger
+	mu           sync.RWMutex
+	watchers     map[string][]chan *ResourceEvent    // environment name -> event channels
+	environments map[string]*placement.EnvironmentInfo // environment name -> capabilities
+	db           database.Client
+	sm           ctrl.StatusManager
+	logger       logr.Logger
 }
 
 // NewEnvironmentServer creates a new EnvironmentServer.
 func NewEnvironmentServer(db database.Client, sm ctrl.StatusManager, logger logr.Logger) *EnvironmentServer {
 	return &EnvironmentServer{
-		watchers: make(map[string][]chan *ResourceEvent),
-		db:       db,
-		sm:       sm,
-		logger:   logger,
+		watchers:     make(map[string][]chan *ResourceEvent),
+		environments: make(map[string]*placement.EnvironmentInfo),
+		db:           db,
+		sm:           sm,
+		logger:       logger,
 	}
+}
+
+// GetEnvironments returns a snapshot of all registered environments for placement decisions.
+func (s *EnvironmentServer) GetEnvironments() []placement.EnvironmentInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]placement.EnvironmentInfo, 0, len(s.environments))
+	for _, env := range s.environments {
+		info := *env
+		// Mark as connected if there are active watchers
+		_, hasWatchers := s.watchers[info.Name]
+		info.Connected = hasWatchers && len(s.watchers[info.Name]) > 0
+		result = append(result, info)
+	}
+	return result
 }
 
 // Register handles environment agent registration.
@@ -102,6 +122,28 @@ func (s *EnvironmentServer) Register(ctx context.Context, req *RegisterRequest) 
 		return &RegisterResponse{Success: false, Message: err.Error()}, nil
 	}
 
+	// Store placement capabilities
+	envInfo := &placement.EnvironmentInfo{
+		Name:       req.EnvironmentName,
+		RecipeTypes: make(map[string]string),
+	}
+	if req.Capabilities != nil {
+		envInfo.Static = placement.StaticCapabilities{
+			Region:       req.Capabilities.Region,
+			Sovereignty:  req.Capabilities.Sovereignty,
+			Capabilities: req.Capabilities.Capabilities,
+			CostPerHour:  req.Capabilities.CostPerHour,
+			MaxReplicas:  req.Capabilities.MaxReplicas,
+		}
+	}
+	for _, recipe := range req.Recipes {
+		envInfo.RecipeTypes[recipe.ResourceType] = recipe.RecipeName
+	}
+
+	s.mu.Lock()
+	s.environments[req.EnvironmentName] = envInfo
+	s.mu.Unlock()
+
 	s.logger.Info("Environment registered", "environment", req.EnvironmentName, "recipes", len(req.Recipes))
 
 	return &RegisterResponse{
@@ -123,6 +165,7 @@ func (s *EnvironmentServer) Unregister(ctx context.Context, req *UnregisterReque
 		}
 		delete(s.watchers, req.EnvironmentName)
 	}
+	delete(s.environments, req.EnvironmentName)
 	s.mu.Unlock()
 
 	// Remove environment from database
@@ -255,4 +298,24 @@ func (s *EnvironmentServer) DispatchResourceEvent(environmentName string, event 
 	}
 
 	return nil
+}
+
+// Heartbeat updates dynamic capabilities for an environment.
+func (s *EnvironmentServer) Heartbeat(ctx context.Context, req *HeartbeatRequest) (*HeartbeatResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	env, ok := s.environments[req.EnvironmentName]
+	if !ok {
+		return &HeartbeatResponse{Acknowledged: false}, nil
+	}
+
+	env.Dynamic = placement.DynamicCapabilities{
+		AvailableCPUMillicores: req.AvailableCpuMillicores,
+		AvailableMemoryMB:      req.AvailableMemoryMb,
+		RunningResources:       req.RunningResources,
+		LastHeartbeat:          time.Now().Unix(),
+	}
+
+	return &HeartbeatResponse{Acknowledged: true}, nil
 }

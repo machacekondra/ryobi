@@ -119,15 +119,15 @@ resources:
 	}
 }
 
-func TestValidate_ApplicationMissingEnv(t *testing.T) {
+func TestValidate_ApplicationMissingEnv_Allowed(t *testing.T) {
 	doc := &Document{
 		APIVersion: APIVersionV1,
 		Kind:       KindApplication,
 		Metadata:   Metadata{Name: "test"},
 	}
-	err := Validate(doc)
-	if err == nil {
-		t.Error("expected validation error for missing environment")
+	// Environment is now optional — placement engine decides
+	if err := Validate(doc); err != nil {
+		t.Errorf("environment should be optional, got error: %v", err)
 	}
 }
 

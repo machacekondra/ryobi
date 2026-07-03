@@ -25,9 +25,30 @@ type Metadata struct {
 type ResourceSpec struct {
 	Name        string          `yaml:"name"`
 	Type        string          `yaml:"type"`
-	Recipe      string          `yaml:"recipe"`
+	Recipe      string          `yaml:"recipe,omitempty"`
 	Parameters  map[string]any  `yaml:"parameters,omitempty"`
 	Connections []ConnectionSpec `yaml:"connections,omitempty"`
+	Placement   *PlacementSpec  `yaml:"placement,omitempty"`
+}
+
+// PlacementSpec defines constraints and preferences for automatic placement.
+type PlacementSpec struct {
+	Constraints ConstraintsSpec `yaml:"constraints,omitempty"`
+	Preferences PreferencesSpec `yaml:"preferences,omitempty"`
+}
+
+// ConstraintsSpec defines hard requirements for placement.
+type ConstraintsSpec struct {
+	Region       string   `yaml:"region,omitempty"`
+	Sovereignty  string   `yaml:"sovereignty,omitempty"`
+	Capabilities []string `yaml:"capabilities,omitempty"`
+}
+
+// PreferencesSpec defines soft preferences for placement scoring.
+type PreferencesSpec struct {
+	Cost               string `yaml:"cost,omitempty"`               // "minimize"
+	Latency            string `yaml:"latency,omitempty"`            // "minimize"
+	AvailableResources string `yaml:"availableResources,omitempty"` // "maximize"
 }
 
 // ConnectionSpec defines a connection to another resource's outputs.

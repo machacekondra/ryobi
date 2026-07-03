@@ -11,19 +11,21 @@ import (
 	"github.com/ryobi-project/ryobi/pkg/api/async"
 	v1 "github.com/ryobi-project/ryobi/pkg/api/v1"
 	"github.com/ryobi-project/ryobi/pkg/components/database"
+	"github.com/ryobi-project/ryobi/pkg/placement"
 	"github.com/ryobi-project/ryobi/pkg/resources/datamodel"
 )
 
 // ResourceDispatcher is an async controller that dispatches resource operations
 // to connected environment agents via gRPC instead of executing Terraform directly.
 type ResourceDispatcher struct {
-	db     database.Client
-	server *EnvironmentServer
+	db              database.Client
+	server          *EnvironmentServer
+	placementEngine placement.Engine
 }
 
 // NewResourceDispatcher creates a new ResourceDispatcher.
-func NewResourceDispatcher(db database.Client, server *EnvironmentServer) *ResourceDispatcher {
-	return &ResourceDispatcher{db: db, server: server}
+func NewResourceDispatcher(db database.Client, server *EnvironmentServer, placementEngine placement.Engine) *ResourceDispatcher {
+	return &ResourceDispatcher{db: db, server: server, placementEngine: placementEngine}
 }
 
 func (d *ResourceDispatcher) Run(ctx context.Context, request *async.AsyncRequest) (ctrl.OperationResult, error) {
@@ -61,6 +63,37 @@ func (d *ResourceDispatcher) Run(ctx context.Context, request *async.AsyncReques
 	}
 
 	environmentName := app.Properties.Environment
+	recipeName := resource.Properties.RecipeName
+
+	// If no explicit environment or recipe, use placement engine
+	if environmentName == "" || recipeName == "" {
+		placementReq := placement.PlacementRequest{
+			ResourceType: resource.Properties.ResourceType,
+		}
+		if resource.Properties.Placement != nil {
+			placementReq.Constraints = resource.Properties.Placement.Constraints
+			placementReq.Preferences = resource.Properties.Placement.Preferences
+		}
+
+		envs := d.server.GetEnvironments()
+		result, err := d.placementEngine.Place(placementReq, envs)
+		if err != nil {
+			setResourceFailed(d.db, ctx, obj, &resource, "placement failed: "+err.Error())
+			return failedResult(err), nil
+		}
+
+		if environmentName == "" {
+			environmentName = result.EnvironmentName
+		}
+		if recipeName == "" {
+			recipeName = result.RecipeName
+		}
+
+		logger.Info("Placement engine selected environment",
+			"environment", environmentName,
+			"recipe", recipeName,
+			"resource", resource.Name)
+	}
 
 	// Convert parameters to string map for protobuf
 	params := make(map[string]string)
@@ -83,7 +116,7 @@ func (d *ResourceDispatcher) Run(ctx context.Context, request *async.AsyncReques
 		ResourceId:      request.ResourceID,
 		ResourceName:    resource.Name,
 		ResourceType:    resource.Properties.ResourceType,
-		RecipeName:      resource.Properties.RecipeName,
+		RecipeName:      recipeName,
 		Operation:       opType,
 		Parameters:      params,
 		ApplicationName: app.Name,

@@ -1,0 +1,71 @@
+## Ryobi Example: Placement-Based Deployment
+##
+## This application uses the placement engine to automatically select
+## the best environment for each resource. No explicit environment
+## or recipe is specified.
+##
+## Prerequisites:
+##   1. Start ryobid:          ./dist/ryobid
+##   2. Start EU env agent:    ./dist/ryobi-env examples/env-eu.yaml
+##   3. Start US env agent:    ./dist/ryobi-env examples/env-us.yaml
+##   4. Deploy:                ./dist/ryobi deploy examples/placement-app.yaml
+##
+## Expected placement:
+##   - eu-api:  → prod-eu (constraint: region=eu-west-1)
+##   - us-api:  → prod-us (constraint: region=us-east-1)
+##   - worker:  → prod-us (preference: cost=minimize, US is cheaper)
+##   - gpu-job: → prod-us (constraint: capabilities=gpu)
+
+apiVersion: ryobi/v1
+kind: Application
+metadata:
+  name: global-app
+  # no environment specified — placement engine decides per-resource
+
+resources:
+  - name: eu-api
+    type: Ryobi.Compute/containers
+    parameters:
+      name: eu-api
+      image: myregistry.io/api:latest
+      replicas: 2
+      ports:
+        - container_port: 8080
+    placement:
+      constraints:
+        region: eu-west-1
+        sovereignty: eu
+
+  - name: us-api
+    type: Ryobi.Compute/containers
+    parameters:
+      name: us-api
+      image: myregistry.io/api:latest
+      replicas: 3
+      ports:
+        - container_port: 8080
+    placement:
+      constraints:
+        region: us-east-1
+
+  - name: worker
+    type: Ryobi.Compute/containers
+    parameters:
+      name: worker
+      image: myregistry.io/worker:latest
+      replicas: 5
+    placement:
+      preferences:
+        cost: minimize
+
+  - name: gpu-job
+    type: Ryobi.Compute/containers
+    parameters:
+      name: gpu-job
+      image: myregistry.io/ml-training:latest
+    placement:
+      constraints:
+        capabilities:
+          - gpu
+      preferences:
+        availableResources: maximize

@@ -1,0 +1,31 @@
+# US environment agent — runs in us-east-1, cheaper
+name: prod-us
+
+server:
+  grpcAddress: localhost:9001
+
+providers:
+  kubernetes:
+    scope: default
+
+terraformProviders:
+  kubernetes:
+    config_path: "~/.kube/config"
+
+capabilities:
+  region: us-east-1
+  sovereignty: us
+  capabilities:
+    - standard
+    - gpu
+  costPerHour: 0.30
+  maxReplicas: 100
+
+recipes:
+  - resourceType: Ryobi.Compute/containers
+    recipeName: kubernetes
+    templatePath: ../recipes/kubernetes-pod
+
+  - resourceType: Ryobi.Compute/virtualMachines
+    recipeName: kubevirt
+    templatePath: ../recipes/kubevirt-vm

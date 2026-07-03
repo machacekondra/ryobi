@@ -5,36 +5,26 @@ package ryobi.environment.v1;
 option go_package = "github.com/ryobi-project/ryobi/pkg/grpcapi";
 
 // EnvironmentService is the gRPC service exposed by ryobid.
-// Environment agents connect to this service to register themselves,
-// watch for resource operations, and report results.
 service EnvironmentService {
-  // Register registers an environment agent with the server.
-  // The server stores the environment configuration and marks it as active.
   rpc Register(RegisterRequest) returns (RegisterResponse);
-
-  // Unregister removes an environment agent registration.
   rpc Unregister(UnregisterRequest) returns (UnregisterResponse);
-
-  // WatchResources opens a server-streaming RPC. The server pushes
-  // resource operation events (deploy/delete) to the environment agent
-  // whenever a resource targeting this environment is created or deleted.
   rpc WatchResources(WatchRequest) returns (stream ResourceEvent);
-
-  // ReportResult is called by the environment agent to report the
-  // outcome of a resource operation (success or failure with outputs).
   rpc ReportResult(ReportResultRequest) returns (ReportResultResponse);
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
-// RegisterRequest is sent by the environment agent on startup.
+// --- Registration ---
+
 message RegisterRequest {
   string environment_name = 1;
   EnvironmentConfig config = 2;
   repeated RecipeRegistration recipes = 3;
+  EnvironmentCapabilities capabilities = 4;
 }
 
 message EnvironmentConfig {
   map<string, ProviderConfig> providers = 1;
-  map<string, string> terraform_providers = 2; // provider name -> JSON config
+  map<string, string> terraform_providers = 2;
 }
 
 message ProviderConfig {
@@ -42,10 +32,20 @@ message ProviderConfig {
 }
 
 message RecipeRegistration {
-  string resource_type = 1;  // e.g. "Ryobi.Compute/containers"
-  string recipe_name = 2;    // e.g. "kubernetes"
-  string template_path = 3;  // absolute path to terraform module
+  string resource_type = 1;
+  string recipe_name = 2;
+  string template_path = 3;
   map<string, string> default_parameters = 4;
+}
+
+// EnvironmentCapabilities describes what an environment can do.
+// Static capabilities are set in config and sent at registration.
+message EnvironmentCapabilities {
+  string region = 1;
+  string sovereignty = 2;
+  repeated string capabilities = 3;  // e.g. ["gpu", "high-memory"]
+  double cost_per_hour = 4;
+  int32 max_replicas = 5;
 }
 
 message RegisterResponse {
@@ -62,12 +62,12 @@ message UnregisterResponse {
   bool success = 1;
 }
 
-// WatchRequest initiates a watch stream for a specific environment.
+// --- Watch ---
+
 message WatchRequest {
   string environment_name = 1;
 }
 
-// ResourceEvent is pushed from the server to the environment agent.
 message ResourceEvent {
   string operation_id = 1;
   string resource_id = 2;
@@ -84,7 +84,8 @@ enum OperationType {
   DELETE = 1;
 }
 
-// ReportResultRequest is sent by the environment agent after processing.
+// --- Result ---
+
 message ReportResultRequest {
   string operation_id = 1;
   string resource_id = 2;
@@ -94,5 +95,18 @@ message ReportResultRequest {
 }
 
 message ReportResultResponse {
+  bool acknowledged = 1;
+}
+
+// --- Heartbeat ---
+
+message HeartbeatRequest {
+  string environment_name = 1;
+  int64 available_cpu_millicores = 2;
+  int64 available_memory_mb = 3;
+  int32 running_resources = 4;
+}
+
+message HeartbeatResponse {
   bool acknowledged = 1;
 }

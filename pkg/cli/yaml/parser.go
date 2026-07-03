@@ -71,9 +71,7 @@ func validateApplication(doc *Document) error {
 	if doc.Metadata.Name == "" {
 		return fmt.Errorf("application metadata.name is required")
 	}
-	if doc.Metadata.Environment == "" {
-		return fmt.Errorf("application metadata.environment is required")
-	}
+	// environment is optional — placement engine will decide if omitted
 	for i, res := range doc.Resources {
 		if res.Name == "" {
 			return fmt.Errorf("resources[%d].name is required", i)
@@ -81,9 +79,7 @@ func validateApplication(doc *Document) error {
 		if res.Type == "" {
 			return fmt.Errorf("resources[%d].type is required", i)
 		}
-		if res.Recipe == "" {
-			return fmt.Errorf("resources[%d].recipe is required", i)
-		}
+		// recipe is optional — placement engine will select if omitted
 	}
 	return nil
 }

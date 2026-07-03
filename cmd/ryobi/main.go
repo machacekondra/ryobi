@@ -169,14 +169,20 @@ func deployApplication(ctx context.Context, client *connections.Client, doc *cli
 	for _, res := range doc.Resources {
 		output.PrintStatus("Deploying resource %q (%s)...", res.Name, res.Type)
 
+		props := map[string]any{
+			"resourceType": res.Type,
+			"parameters":   res.Parameters,
+			"connections":  res.Connections,
+		}
+		if res.Recipe != "" {
+			props["recipeName"] = res.Recipe
+		}
+		if res.Placement != nil {
+			props["placement"] = res.Placement
+		}
 		resBody := map[string]any{
-			"name": res.Name,
-			"properties": map[string]any{
-				"resourceType": res.Type,
-				"recipeName":   res.Recipe,
-				"parameters":   res.Parameters,
-				"connections":  res.Connections,
-			},
+			"name":       res.Name,
+			"properties": props,
 		}
 
 		path := fmt.Sprintf("/api/v1/applications/%s/resources/%s", doc.Metadata.Name, res.Name)

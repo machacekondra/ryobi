@@ -1,6 +1,10 @@
 package datamodel
 
-import "time"
+import (
+	"time"
+
+	"github.com/ryobi-project/ryobi/pkg/placement"
+)
 
 // Environment represents a deployment target.
 type Environment struct {
@@ -75,12 +79,16 @@ type Resource struct {
 
 // ResourceProperties holds resource configuration.
 type ResourceProperties struct {
-	ResourceType string           `json:"resourceType"`
-	RecipeName   string           `json:"recipeName"`
-	Parameters   map[string]any   `json:"parameters,omitempty"`
-	Connections  []ConnectionRef  `json:"connections,omitempty"`
-	Status       ResourceStatus   `json:"status,omitempty"`
+	ResourceType string                `json:"resourceType"`
+	RecipeName   string                `json:"recipeName,omitempty"`
+	Parameters   map[string]any        `json:"parameters,omitempty"`
+	Connections  []ConnectionRef       `json:"connections,omitempty"`
+	Placement    *ResourcePlacement    `json:"placement,omitempty"`
+	Status       ResourceStatus        `json:"status,omitempty"`
 }
+
+// ResourcePlacement holds per-resource placement policy.
+type ResourcePlacement = placement.Placement
 
 // ConnectionRef references another resource's outputs.
 type ConnectionRef struct {

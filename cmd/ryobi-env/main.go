@@ -81,6 +81,9 @@ func main() {
 		}
 	}()
 
+	// Start heartbeat goroutine
+	go runHeartbeat(ctx, client, cfg, logger)
+
 	// Build recipe lookup table
 	recipeIndex := buildRecipeIndex(cfg)
 
@@ -104,6 +107,13 @@ func registerEnvironment(ctx context.Context, client grpcapi.EnvironmentServiceC
 			TerraformProviders: make(map[string]string),
 		},
 		Recipes: make([]*grpcapi.RecipeRegistration, 0, len(cfg.Recipes)),
+		Capabilities: &grpcapi.EnvironmentCapabilities{
+			Region:       cfg.Capabilities.Region,
+			Sovereignty:  cfg.Capabilities.Sovereignty,
+			Capabilities: cfg.Capabilities.Capabilities,
+			CostPerHour:  cfg.Capabilities.CostPerHour,
+			MaxReplicas:  cfg.Capabilities.MaxReplicas,
+		},
 	}
 
 	for name, p := range cfg.Providers {
@@ -333,6 +343,28 @@ func processEvent(ctx context.Context, event *grpcapi.ResourceEvent, cfg *EnvCon
 			OperationId: event.OperationId,
 			ResourceId:  event.ResourceId,
 			Success:     true,
+		}
+	}
+}
+
+func runHeartbeat(ctx context.Context, client grpcapi.EnvironmentServiceClient, cfg *EnvConfig, logger logr.Logger) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			_, err := client.Heartbeat(ctx, &grpcapi.HeartbeatRequest{
+				EnvironmentName:        cfg.Name,
+				AvailableCpuMillicores: 0, // TODO: collect from system/k8s
+				AvailableMemoryMb:      0, // TODO: collect from system/k8s
+				RunningResources:       0, // TODO: track locally
+			})
+			if err != nil {
+				logger.Error(err, "Heartbeat failed")
+			}
 		}
 	}
 }
