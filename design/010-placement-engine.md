@@ -1,38 +1,72 @@
 # Design: Placement Engine
 
 **Status:** Accepted
-**Date:** 2026-07-03
+**Date:** 2026-07-03 (updated)
 
 ## Context
 
-In the initial design, deploying a resource required explicitly specifying both the target environment and the recipe name. This tightly couples applications to specific infrastructure, making it hard to:
-
-- Deploy the same app across multiple regions
-- Optimize for cost or capacity automatically
-- Enforce data sovereignty requirements
-- Move workloads between environments without changing YAML
-
-The placement engine decouples the "what" from the "where" — users declare what they need (resource type + constraints), and the engine decides where it runs.
+Deploying a resource requires knowing which environment and recipe to use. Rather than forcing application developers to make this decision, placement is managed by administrators who define rules as API objects. The placement engine evaluates these rules at deploy time.
 
 ## Decision
 
+### Administrator-Defined Placement Rules
+
+Placement rules are **API objects** created by administrators, not inline YAML on resources. This separates the concern:
+
+- **Developers** define what they need: resource type + parameters
+- **Administrators** define where things run: placement rules with constraints and preferences
+
+```bash
+# Admin creates rules via CLI
+ryobi placement create eu-containers \
+  --resource-type Ryobi.Compute/containers \
+  --region eu-west-1 --sovereignty eu --priority 10
+
+ryobi placement create cost-optimized \
+  --resource-type Ryobi.Compute/containers \
+  --cost minimize --priority 1
+```
+
+### PlacementRule API Object
+
+Stored at `/api/v1/placements/{name}`:
+
+```json
+{
+  "name": "eu-containers",
+  "properties": {
+    "resourceType": "Ryobi.Compute/containers",
+    "constraints": {
+      "region": "eu-west-1",
+      "sovereignty": "eu"
+    },
+    "preferences": {
+      "cost": "minimize"
+    },
+    "priority": 10
+  }
+}
+```
+
 ### Per-Resource Placement
 
-Placement decisions are made **per resource**, not per application. Different resources in the same application can land on different environments:
+Placement decisions are made **per resource**. Different resources in the same application can land on different environments based on which rules match their resource type.
+
+### Application YAML Stays Simple
+
+Developers don't specify placement — just resource type and parameters:
 
 ```yaml
+apiVersion: ryobi/v1
+kind: Application
+metadata:
+  name: my-app
 resources:
-  - name: eu-api
+  - name: api
     type: Ryobi.Compute/containers
-    placement:
-      constraints:
-        region: eu-west-1       # → prod-eu environment
-
-  - name: worker
-    type: Ryobi.Compute/containers
-    placement:
-      preferences:
-        cost: minimize          # → cheapest environment
+    parameters:
+      name: api
+      image: myapp:latest
 ```
 
 ### Backward Compatibility
@@ -41,101 +75,84 @@ resources:
 - If `recipe` is set on a resource, that recipe is used directly
 - Placement only activates when environment or recipe is omitted
 
+### Rule Matching and Priority
+
+When multiple rules match the same resource type, they are evaluated in **priority order** (highest first). The first rule that finds a matching environment wins. This allows layered policies:
+
+| Rule | Resource Type | Constraints | Preferences | Priority |
+|------|--------------|-------------|-------------|----------|
+| `eu-sovereign` | `Ryobi.Compute/containers` | region=eu-west-1, sovereignty=eu | | 10 |
+| `cost-optimized` | `Ryobi.Compute/containers` | | cost=minimize | 1 |
+
+With these rules: containers go to EU if an EU environment is connected. Otherwise, fall back to cheapest.
+
 ### Constraints vs Preferences
 
 **Constraints** (hard requirements) — environment must match all:
 
-| Constraint | Description | Example |
-|------------|-------------|---------|
-| `region` | Geographic region | `eu-west-1`, `us-east-1` |
-| `sovereignty` | Data sovereignty zone | `eu`, `us` |
-| `capabilities` | Required features | `["gpu", "high-memory"]` |
+| Constraint | Description |
+|------------|-------------|
+| `region` | Geographic region (e.g. `eu-west-1`) |
+| `sovereignty` | Data sovereignty zone (e.g. `eu`) |
+| `capabilities` | Required features (e.g. `["gpu"]`) |
 
 **Preferences** (soft scoring) — used to rank matching environments:
 
 | Preference | Value | Behavior |
 |------------|-------|----------|
-| `cost` | `minimize` | Prefer environments with lower `costPerHour` |
-| `availableResources` | `maximize` | Prefer environments with more free CPU/memory |
-
-When no preferences are specified, the engine scores by running resource count (prefer less busy environments).
-
-### Environment Capabilities
-
-#### Static Capabilities
-
-Set in the environment agent config and sent during gRPC registration:
-
-```yaml
-capabilities:
-  region: eu-west-1
-  sovereignty: eu
-  capabilities: [gpu, high-memory]
-  costPerHour: 0.50
-  maxReplicas: 50
-```
-
-Stored on the server in `EnvironmentServer.environments` map.
-
-#### Dynamic Capabilities
-
-Reported periodically (every 30s) via the `Heartbeat` gRPC RPC:
-
-```protobuf
-message HeartbeatRequest {
-  string environment_name = 1;
-  int64 available_cpu_millicores = 2;
-  int64 available_memory_mb = 3;
-  int32 running_resources = 4;
-}
-```
-
-Dynamic data is used for `availableResources: maximize` preference scoring.
+| `cost` | `minimize` | Prefer lower `costPerHour` |
+| `availableResources` | `maximize` | Prefer more free CPU/memory |
 
 ### Algorithm
 
 ```
-Input: PlacementRequest{ResourceType, Constraints, Preferences}
-       + list of all registered EnvironmentInfo
+Input: PlacementRequest{ResourceType}
+       + PlacementRules (from database, sorted by priority desc)
+       + EnvironmentInfo (from connected agents)
 
-1. FILTER: Remove disconnected environments
-2. FILTER: Remove environments that don't support the resource type
-3. FILTER: Remove environments that don't match region constraint
-4. FILTER: Remove environments that don't match sovereignty constraint
-5. FILTER: Remove environments missing required capabilities
-6. If no candidates remain → error
+1. Find all rules matching the resource type
+2. Sort by priority (highest first)
+3. For each rule:
+   a. FILTER environments by rule's constraints
+   b. FILTER by resource type support
+   c. FILTER disconnected environments
+   d. If candidates remain:
+      - SCORE by rule's preferences
+      - SELECT highest scoring
+      - RESOLVE recipe from environment
+      - RETURN result
+4. If no rules matched or all rules failed:
+   - FALLBACK: pick any connected environment supporting the type
 
-7. SCORE each candidate:
-   - cost=minimize    → score = 1 / (1 + costPerHour)
-   - resources=maximize → score = normalized(CPU + memory)
-   - no preferences   → score = 1 - (running / maxReplicas)
-
-8. SELECT highest scoring candidate
-9. RESOLVE recipe name from candidate's RecipeTypes map
-
-Output: PlacementResult{EnvironmentName, RecipeName}
+Output: PlacementResult{EnvironmentName, RecipeName, RuleName}
 ```
 
 ### Integration Point
 
-The placement engine is called in `ResourceDispatcher.Run()` (file `pkg/grpcapi/dispatcher.go`):
+The placement engine is called in `ResourceDispatcher.Run()` (`pkg/grpcapi/dispatcher.go`):
 
 ```go
 if environmentName == "" || recipeName == "" {
-    result, err := d.placementEngine.Place(request, d.server.GetEnvironments())
-    environmentName = result.EnvironmentName
-    recipeName = result.RecipeName
+    rules := d.loadPlacementRules(ctx)  // from database
+    envs := d.server.GetEnvironments()
+    result, err := d.placementEngine.Place(request, rules, envs)
 }
 ```
 
-This happens after the resource is saved to the database but before the gRPC event is dispatched to the environment agent.
+### CLI Commands
+
+```bash
+ryobi placement create <name> [flags]   # Create a rule
+ryobi placement list                     # List all rules
+ryobi placement show <name>              # Show rule details
+ryobi placement delete <name>            # Delete a rule
+```
 
 ## Consequences
 
-- Users can deploy without knowing infrastructure details
-- Same YAML works across different infrastructure setups
-- Cost optimization and capacity-aware scheduling are built in
-- Data sovereignty can be enforced via constraints
-- Trade-off: placement decisions are best-effort based on reported capabilities
-- Trade-off: dynamic capabilities depend on heartbeat accuracy and freshness
-- Trade-off: no re-placement of already-deployed resources (placement is at deploy time only)
+- Clean separation: developers define apps, admins define placement policy
+- Rules are API objects — can be managed, versioned, audited
+- Priority-based evaluation allows layered policies (strict → fallback)
+- No placement config in application YAML — apps are portable
+- Trade-off: requires admin setup before placement works
+- Trade-off: no re-placement of already-deployed resources

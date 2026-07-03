@@ -98,14 +98,15 @@ ryobi app status my-app
 ## CLI Commands
 
 ```
-ryobi deploy <file>                 Deploy from YAML
-ryobi env list|show|delete          Manage environments
-ryobi app list|show|status|delete   Manage applications
-ryobi resource list|show|delete     Manage resources
-ryobi recipe list                   List registered recipes
-ryobi version                       Show version info
+ryobi deploy <file>                     Deploy from YAML
+ryobi env list|show|delete              Manage environments
+ryobi app list|show|status|delete       Manage applications (delete removes resources first)
+ryobi resource list|show|delete         Manage resources
+ryobi recipe list                       List registered recipes
+ryobi placement create|list|show|delete Manage placement rules (admin)
+ryobi version                           Show version info
 
-ryobi-env <config.yaml>             Start an environment agent
+ryobi-env <config.yaml>                 Start an environment agent
 ```
 
 ## Project Structure

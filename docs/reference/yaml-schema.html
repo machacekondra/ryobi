@@ -115,16 +115,9 @@ resources:                   # Optional. Resources to deploy
     connections:             # Optional. References to other resources
       - name: &lt;string&gt;      # Connection name
         source: &lt;string&gt;    # Source resource name
-        key: &lt;string&gt;       # Output key to inject
-    placement:               # Optional. Placement policy (used when environment/recipe omitted)
-      constraints:           # Hard requirements — environment must match all
-        region: &lt;string&gt;    # e.g. "eu-west-1"
-        sovereignty: &lt;string&gt;  # e.g. "eu"
-        capabilities:        # e.g. ["gpu", "high-memory"]
-          - &lt;string&gt;
-      preferences:           # Soft scoring — ranks matching environments
-        cost: minimize       # Prefer cheapest environment
-        availableResources: maximize  # Prefer most free capacity</code></pre>
+        key: &lt;string&gt;       # Output key to inject</code></pre>
+
+    <p>Placement decisions are managed by administrators via <code>ryobi placement</code> CLI commands, not in application YAML. See <a href="cli.html">CLI Reference</a>.</p>
 
     <h2>Multi-Document Files</h2>
     <p>You can combine environments and applications in a single file using YAML document separators (<code>---</code>). Environments are always processed first.</p>
@@ -161,12 +154,6 @@ resources:
         <tr><td><code>resources[].recipe</code></td><td>string</td><td>No</td><td>Recipe name (placement selects if omitted)</td></tr>
         <tr><td><code>resources[].parameters</code></td><td>map</td><td>No</td><td>Override recipe default parameters</td></tr>
         <tr><td><code>resources[].connections</code></td><td>list</td><td>No</td><td>References to other resource outputs</td></tr>
-        <tr><td><code>resources[].placement</code></td><td>object</td><td>No</td><td>Placement policy for automatic environment selection</td></tr>
-        <tr><td><code>resources[].placement.constraints.region</code></td><td>string</td><td>No</td><td>Required region (must match)</td></tr>
-        <tr><td><code>resources[].placement.constraints.sovereignty</code></td><td>string</td><td>No</td><td>Required sovereignty zone (must match)</td></tr>
-        <tr><td><code>resources[].placement.constraints.capabilities</code></td><td>list</td><td>No</td><td>Required capabilities (all must match)</td></tr>
-        <tr><td><code>resources[].placement.preferences.cost</code></td><td>string</td><td>No</td><td><code>minimize</code> — prefer cheapest environment</td></tr>
-        <tr><td><code>resources[].placement.preferences.availableResources</code></td><td>string</td><td>No</td><td><code>maximize</code> — prefer most free capacity</td></tr>
       </tbody>
     </table>
   </div>

@@ -129,28 +129,59 @@
       </tbody>
     </table>
 
+    <h2>ryobi placement</h2>
+    <p>Manage administrator-defined placement rules. Placement rules determine which environment handles a resource type when no explicit environment is specified.</p>
+    <table>
+      <thead><tr><th>Command</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>ryobi placement list</code></td><td>List all placement rules</td></tr>
+        <tr><td><code>ryobi placement show &lt;name&gt;</code></td><td>Show rule details</td></tr>
+        <tr><td><code>ryobi placement create &lt;name&gt; [flags]</code></td><td>Create a placement rule</td></tr>
+        <tr><td><code>ryobi placement delete &lt;name&gt;</code></td><td>Delete a placement rule</td></tr>
+      </tbody>
+    </table>
+    <p>Create flags:</p>
+    <table>
+      <thead><tr><th>Flag</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>--resource-type &lt;type&gt;</code></td><td>Resource type this rule applies to (required)</td></tr>
+        <tr><td><code>--region &lt;region&gt;</code></td><td>Required region constraint</td></tr>
+        <tr><td><code>--sovereignty &lt;zone&gt;</code></td><td>Required sovereignty constraint</td></tr>
+        <tr><td><code>--cost minimize</code></td><td>Prefer cheapest environment</td></tr>
+        <tr><td><code>--available-resources maximize</code></td><td>Prefer most free capacity</td></tr>
+        <tr><td><code>--priority &lt;int&gt;</code></td><td>Rule priority (higher wins, default 0)</td></tr>
+      </tbody>
+    </table>
+
     <h2>ryobi version</h2>
     <p>Show CLI version information.</p>
     <pre><code>ryobi version
 # ryobi version 0.1.0-dev (commit: abc1234, channel: dev)</code></pre>
 
     <h2>Examples</h2>
-    <pre><code># Deploy a complete application stack
-ryobi deploy examples/app.yaml
+    <pre><code># Set up placement rules (admin)
+ryobi placement create eu-containers \
+  --resource-type Ryobi.Compute/containers \
+  --region eu-west-1 --sovereignty eu --priority 10
+ryobi placement create cost-fallback \
+  --resource-type Ryobi.Compute/containers \
+  --cost minimize --priority 1
+ryobi placement list
 
-# Deploy with environment override
+# Deploy an application (placement selects environment automatically)
+ryobi deploy examples/placement-app.yaml
+
+# Deploy with explicit environment
 ryobi deploy app.yaml -e staging
 
 # Check what was deployed
 ryobi app status my-app
 
-# View resource outputs (e.g., connection strings)
-ryobi resource show database --app my-app
+# View resource details
+ryobi resource show api --app my-app
 
-# Clean up
-ryobi resource delete database --app my-app
-ryobi app delete my-app
-ryobi env delete dev</code></pre>
+# Clean up (deletes all resources first, then the app)
+ryobi app delete my-app</code></pre>
   </div>
 
   <footer class="footer">
