@@ -91,13 +91,32 @@ type ConnectionRef struct {
 
 // ResourceStatus represents the status of a Terraform-managed resource.
 type ResourceStatus struct {
-	State           string         `json:"state,omitempty"`
-	Environment     string         `json:"environment,omitempty"`
-	Recipe          string         `json:"recipe,omitempty"`
-	Error           string         `json:"error,omitempty"`
-	Outputs         map[string]any `json:"outputs,omitempty"`
-	OutputResources []string       `json:"outputResources,omitempty"`
+	State           string          `json:"state,omitempty"`
+	Environment     string          `json:"environment,omitempty"`
+	Recipe          string          `json:"recipe,omitempty"`
+	Error           string          `json:"error,omitempty"`
+	Outputs         map[string]any  `json:"outputs,omitempty"`
+	OutputResources []string        `json:"outputResources,omitempty"`
+	Health          *ResourceHealth `json:"health,omitempty"`
 }
+
+// ResourceHealth holds live infrastructure health reported by the environment agent.
+type ResourceHealth struct {
+	State           string            `json:"state"`                     // Running, Degraded, Down, Unknown
+	Message         string            `json:"message,omitempty"`
+	ReadyReplicas   int32             `json:"readyReplicas,omitempty"`
+	DesiredReplicas int32             `json:"desiredReplicas,omitempty"`
+	LastUpdated     time.Time         `json:"lastUpdated"`
+	Properties      map[string]string `json:"properties,omitempty"`
+}
+
+// Health state constants.
+const (
+	HealthRunning  = "Running"
+	HealthDegraded = "Degraded"
+	HealthDown     = "Down"
+	HealthUnknown  = "Unknown"
+)
 
 // Resource state constants.
 const (

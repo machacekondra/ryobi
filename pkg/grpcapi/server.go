@@ -333,3 +333,32 @@ func (s *EnvironmentServer) Heartbeat(ctx context.Context, req *HeartbeatRequest
 
 	return &HeartbeatResponse{Acknowledged: true}, nil
 }
+
+// ReportStatus updates the live infrastructure health of a resource.
+func (s *EnvironmentServer) ReportStatus(ctx context.Context, req *ReportStatusRequest) (*ReportStatusResponse, error) {
+	obj, err := s.db.Get(ctx, req.ResourceId)
+	if err != nil {
+		return &ReportStatusResponse{Acknowledged: false}, nil
+	}
+
+	var resource datamodel.Resource
+	if err := obj.As(&resource); err != nil {
+		return &ReportStatusResponse{Acknowledged: false}, nil
+	}
+
+	resource.Properties.Status.Health = &datamodel.ResourceHealth{
+		State:           req.Health.State,
+		Message:         req.Health.Message,
+		ReadyReplicas:   req.Health.ReadyReplicas,
+		DesiredReplicas: req.Health.DesiredReplicas,
+		LastUpdated:     time.Now(),
+		Properties:      req.Health.Properties,
+	}
+
+	obj.Data = &resource
+	if err := s.db.Save(ctx, obj, database.WithETag(obj.ETag)); err != nil {
+		s.logger.Error(err, "Failed to save resource health", "resourceId", req.ResourceId)
+	}
+
+	return &ReportStatusResponse{Acknowledged: true}, nil
+}

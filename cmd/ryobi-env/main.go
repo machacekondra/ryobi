@@ -84,12 +84,16 @@ func main() {
 	// Start heartbeat goroutine
 	go runHeartbeat(ctx, client, cfg, logger)
 
+	// Start status watcher
+	watcher := newStatusWatcher(client, cfg, logger)
+	go watcher.Run(ctx)
+
 	// Build recipe lookup table
 	recipeIndex := buildRecipeIndex(cfg)
 
 	// Watch for resource events
 	logger.Info("Watching for resource events...")
-	if err := watchAndProcess(ctx, client, cfg, recipeIndex, logger); err != nil {
+	if err := watchAndProcess(ctx, client, cfg, recipeIndex, watcher, logger); err != nil {
 		if ctx.Err() != nil {
 			logger.Info("Shutting down")
 		} else {
@@ -163,7 +167,7 @@ func buildRecipeIndex(cfg *EnvConfig) map[string]recipeEntry {
 	return index
 }
 
-func watchAndProcess(ctx context.Context, client grpcapi.EnvironmentServiceClient, cfg *EnvConfig, recipeIndex map[string]recipeEntry, logger logr.Logger) error {
+func watchAndProcess(ctx context.Context, client grpcapi.EnvironmentServiceClient, cfg *EnvConfig, recipeIndex map[string]recipeEntry, watcher *statusWatcher, logger logr.Logger) error {
 	stream, err := client.WatchResources(ctx, &grpcapi.WatchRequest{
 		EnvironmentName: cfg.Name,
 	})
@@ -194,6 +198,13 @@ func watchAndProcess(ctx context.Context, client grpcapi.EnvironmentServiceClien
 			_, reportErr := client.ReportResult(ctx, result)
 			if reportErr != nil {
 				logger.Error(reportErr, "Failed to report result", "operationId", ev.OperationId)
+			}
+
+			// Register/unregister resource for status watching
+			if result.Success && ev.Operation == grpcapi.OperationType_DEPLOY {
+				watcher.Register(ev.ResourceId, ev.ResourceName, ev.ResourceType, ev.Parameters)
+			} else if ev.Operation == grpcapi.OperationType_DELETE {
+				watcher.Unregister(ev.ResourceId)
 			}
 		}(event)
 	}

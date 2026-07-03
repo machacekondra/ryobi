@@ -583,7 +583,7 @@ func newAppCmd() *cobra.Command {
 			}
 
 			fmt.Printf("Application: %s\n\n", args[0])
-			headers := []string{"RESOURCE", "TYPE", "ENVIRONMENT", "RECIPE", "STATE"}
+			headers := []string{"RESOURCE", "TYPE", "ENVIRONMENT", "STATE", "HEALTH", "READY"}
 			var rows [][]string
 			for _, item := range resp.Value {
 				var res map[string]any
@@ -591,17 +591,23 @@ func newAppCmd() *cobra.Command {
 				name, _ := res["name"].(string)
 				props, _ := res["properties"].(map[string]any)
 				resType, _ := props["resourceType"].(string)
-				recipe, _ := props["recipeName"].(string)
 				state := ""
 				env := ""
+				health := ""
+				ready := ""
 				if status, ok := props["status"].(map[string]any); ok {
 					state, _ = status["state"].(string)
 					env, _ = status["environment"].(string)
-					if r, ok := status["recipe"].(string); ok && r != "" {
-						recipe = r
+					if h, ok := status["health"].(map[string]any); ok {
+						health, _ = h["state"].(string)
+						readyR, _ := h["readyReplicas"].(float64)
+						desiredR, _ := h["desiredReplicas"].(float64)
+						if desiredR > 0 {
+							ready = fmt.Sprintf("%.0f/%.0f", readyR, desiredR)
+						}
 					}
 				}
-				rows = append(rows, []string{name, resType, env, recipe, state})
+				rows = append(rows, []string{name, resType, env, state, health, ready})
 			}
 			output.PrintTable(headers, rows)
 			return nil

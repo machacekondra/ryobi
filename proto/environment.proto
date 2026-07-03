@@ -10,6 +10,7 @@ service EnvironmentService {
   rpc Unregister(UnregisterRequest) returns (UnregisterResponse);
   rpc WatchResources(WatchRequest) returns (stream ResourceEvent);
   rpc ReportResult(ReportResultRequest) returns (ReportResultResponse);
+  rpc ReportStatus(ReportStatusRequest) returns (ReportStatusResponse);
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
@@ -95,6 +96,27 @@ message ReportResultRequest {
 }
 
 message ReportResultResponse {
+  bool acknowledged = 1;
+}
+
+// --- Live Status ---
+
+message ReportStatusRequest {
+  string resource_id = 1;
+  string resource_name = 2;
+  ResourceHealthStatus health = 3;
+}
+
+message ResourceHealthStatus {
+  string state = 1;               // "Running", "Degraded", "Down", "Unknown"
+  string message = 2;             // human-readable description
+  int32 ready_replicas = 3;       // for deployments: ready pods
+  int32 desired_replicas = 4;     // for deployments: desired pods
+  int64 last_updated = 5;         // unix timestamp
+  map<string, string> properties = 6; // provider-specific info
+}
+
+message ReportStatusResponse {
   bool acknowledged = 1;
 }
 

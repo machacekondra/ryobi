@@ -23,6 +23,7 @@ const (
 	EnvironmentService_Unregister_FullMethodName     = "/ryobi.environment.v1.EnvironmentService/Unregister"
 	EnvironmentService_WatchResources_FullMethodName = "/ryobi.environment.v1.EnvironmentService/WatchResources"
 	EnvironmentService_ReportResult_FullMethodName   = "/ryobi.environment.v1.EnvironmentService/ReportResult"
+	EnvironmentService_ReportStatus_FullMethodName   = "/ryobi.environment.v1.EnvironmentService/ReportStatus"
 	EnvironmentService_Heartbeat_FullMethodName      = "/ryobi.environment.v1.EnvironmentService/Heartbeat"
 )
 
@@ -36,6 +37,7 @@ type EnvironmentServiceClient interface {
 	Unregister(ctx context.Context, in *UnregisterRequest, opts ...grpc.CallOption) (*UnregisterResponse, error)
 	WatchResources(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ResourceEvent], error)
 	ReportResult(ctx context.Context, in *ReportResultRequest, opts ...grpc.CallOption) (*ReportResultResponse, error)
+	ReportStatus(ctx context.Context, in *ReportStatusRequest, opts ...grpc.CallOption) (*ReportStatusResponse, error)
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 }
 
@@ -96,6 +98,16 @@ func (c *environmentServiceClient) ReportResult(ctx context.Context, in *ReportR
 	return out, nil
 }
 
+func (c *environmentServiceClient) ReportStatus(ctx context.Context, in *ReportStatusRequest, opts ...grpc.CallOption) (*ReportStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReportStatusResponse)
+	err := c.cc.Invoke(ctx, EnvironmentService_ReportStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *environmentServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(HeartbeatResponse)
@@ -116,6 +128,7 @@ type EnvironmentServiceServer interface {
 	Unregister(context.Context, *UnregisterRequest) (*UnregisterResponse, error)
 	WatchResources(*WatchRequest, grpc.ServerStreamingServer[ResourceEvent]) error
 	ReportResult(context.Context, *ReportResultRequest) (*ReportResultResponse, error)
+	ReportStatus(context.Context, *ReportStatusRequest) (*ReportStatusResponse, error)
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
 	mustEmbedUnimplementedEnvironmentServiceServer()
 }
@@ -138,6 +151,9 @@ func (UnimplementedEnvironmentServiceServer) WatchResources(*WatchRequest, grpc.
 }
 func (UnimplementedEnvironmentServiceServer) ReportResult(context.Context, *ReportResultRequest) (*ReportResultResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportResult not implemented")
+}
+func (UnimplementedEnvironmentServiceServer) ReportStatus(context.Context, *ReportStatusRequest) (*ReportStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReportStatus not implemented")
 }
 func (UnimplementedEnvironmentServiceServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Heartbeat not implemented")
@@ -228,6 +244,24 @@ func _EnvironmentService_ReportResult_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnvironmentService_ReportStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnvironmentServiceServer).ReportStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EnvironmentService_ReportStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnvironmentServiceServer).ReportStatus(ctx, req.(*ReportStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _EnvironmentService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HeartbeatRequest)
 	if err := dec(in); err != nil {
@@ -264,6 +298,10 @@ var EnvironmentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportResult",
 			Handler:    _EnvironmentService_ReportResult_Handler,
+		},
+		{
+			MethodName: "ReportStatus",
+			Handler:    _EnvironmentService_ReportStatus_Handler,
 		},
 		{
 			MethodName: "Heartbeat",

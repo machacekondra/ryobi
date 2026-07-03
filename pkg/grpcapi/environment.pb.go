@@ -789,6 +789,194 @@ func (x *ReportResultResponse) GetAcknowledged() bool {
 	return false
 }
 
+type ReportStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ResourceId    string                 `protobuf:"bytes,1,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
+	ResourceName  string                 `protobuf:"bytes,2,opt,name=resource_name,json=resourceName,proto3" json:"resource_name,omitempty"`
+	Health        *ResourceHealthStatus  `protobuf:"bytes,3,opt,name=health,proto3" json:"health,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportStatusRequest) Reset() {
+	*x = ReportStatusRequest{}
+	mi := &file_proto_environment_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportStatusRequest) ProtoMessage() {}
+
+func (x *ReportStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_environment_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportStatusRequest.ProtoReflect.Descriptor instead.
+func (*ReportStatusRequest) Descriptor() ([]byte, []int) {
+	return file_proto_environment_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ReportStatusRequest) GetResourceId() string {
+	if x != nil {
+		return x.ResourceId
+	}
+	return ""
+}
+
+func (x *ReportStatusRequest) GetResourceName() string {
+	if x != nil {
+		return x.ResourceName
+	}
+	return ""
+}
+
+func (x *ReportStatusRequest) GetHealth() *ResourceHealthStatus {
+	if x != nil {
+		return x.Health
+	}
+	return nil
+}
+
+type ResourceHealthStatus struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	State           string                 `protobuf:"bytes,1,opt,name=state,proto3" json:"state,omitempty"`                                                                                     // "Running", "Degraded", "Down", "Unknown"
+	Message         string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`                                                                                 // human-readable description
+	ReadyReplicas   int32                  `protobuf:"varint,3,opt,name=ready_replicas,json=readyReplicas,proto3" json:"ready_replicas,omitempty"`                                               // for deployments: ready pods
+	DesiredReplicas int32                  `protobuf:"varint,4,opt,name=desired_replicas,json=desiredReplicas,proto3" json:"desired_replicas,omitempty"`                                         // for deployments: desired pods
+	LastUpdated     int64                  `protobuf:"varint,5,opt,name=last_updated,json=lastUpdated,proto3" json:"last_updated,omitempty"`                                                     // unix timestamp
+	Properties      map[string]string      `protobuf:"bytes,6,rep,name=properties,proto3" json:"properties,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // provider-specific info
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ResourceHealthStatus) Reset() {
+	*x = ResourceHealthStatus{}
+	mi := &file_proto_environment_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResourceHealthStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResourceHealthStatus) ProtoMessage() {}
+
+func (x *ResourceHealthStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_environment_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResourceHealthStatus.ProtoReflect.Descriptor instead.
+func (*ResourceHealthStatus) Descriptor() ([]byte, []int) {
+	return file_proto_environment_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ResourceHealthStatus) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *ResourceHealthStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ResourceHealthStatus) GetReadyReplicas() int32 {
+	if x != nil {
+		return x.ReadyReplicas
+	}
+	return 0
+}
+
+func (x *ResourceHealthStatus) GetDesiredReplicas() int32 {
+	if x != nil {
+		return x.DesiredReplicas
+	}
+	return 0
+}
+
+func (x *ResourceHealthStatus) GetLastUpdated() int64 {
+	if x != nil {
+		return x.LastUpdated
+	}
+	return 0
+}
+
+func (x *ResourceHealthStatus) GetProperties() map[string]string {
+	if x != nil {
+		return x.Properties
+	}
+	return nil
+}
+
+type ReportStatusResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Acknowledged  bool                   `protobuf:"varint,1,opt,name=acknowledged,proto3" json:"acknowledged,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportStatusResponse) Reset() {
+	*x = ReportStatusResponse{}
+	mi := &file_proto_environment_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportStatusResponse) ProtoMessage() {}
+
+func (x *ReportStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_environment_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportStatusResponse.ProtoReflect.Descriptor instead.
+func (*ReportStatusResponse) Descriptor() ([]byte, []int) {
+	return file_proto_environment_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ReportStatusResponse) GetAcknowledged() bool {
+	if x != nil {
+		return x.Acknowledged
+	}
+	return false
+}
+
 type HeartbeatRequest struct {
 	state                  protoimpl.MessageState `protogen:"open.v1"`
 	EnvironmentName        string                 `protobuf:"bytes,1,opt,name=environment_name,json=environmentName,proto3" json:"environment_name,omitempty"`
@@ -801,7 +989,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_proto_environment_proto_msgTypes[12]
+	mi := &file_proto_environment_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -813,7 +1001,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_environment_proto_msgTypes[12]
+	mi := &file_proto_environment_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -826,7 +1014,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_proto_environment_proto_rawDescGZIP(), []int{12}
+	return file_proto_environment_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *HeartbeatRequest) GetEnvironmentName() string {
@@ -866,7 +1054,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_proto_environment_proto_msgTypes[13]
+	mi := &file_proto_environment_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -878,7 +1066,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_environment_proto_msgTypes[13]
+	mi := &file_proto_environment_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +1079,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_proto_environment_proto_rawDescGZIP(), []int{13}
+	return file_proto_environment_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *HeartbeatResponse) GetAcknowledged() bool {
@@ -974,6 +1162,25 @@ const file_proto_environment_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\":\n" +
 	"\x14ReportResultResponse\x12\"\n" +
+	"\facknowledged\x18\x01 \x01(\bR\facknowledged\"\x9f\x01\n" +
+	"\x13ReportStatusRequest\x12\x1f\n" +
+	"\vresource_id\x18\x01 \x01(\tR\n" +
+	"resourceId\x12#\n" +
+	"\rresource_name\x18\x02 \x01(\tR\fresourceName\x12B\n" +
+	"\x06health\x18\x03 \x01(\v2*.ryobi.environment.v1.ResourceHealthStatusR\x06health\"\xd6\x02\n" +
+	"\x14ResourceHealthStatus\x12\x14\n" +
+	"\x05state\x18\x01 \x01(\tR\x05state\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12%\n" +
+	"\x0eready_replicas\x18\x03 \x01(\x05R\rreadyReplicas\x12)\n" +
+	"\x10desired_replicas\x18\x04 \x01(\x05R\x0fdesiredReplicas\x12!\n" +
+	"\flast_updated\x18\x05 \x01(\x03R\vlastUpdated\x12Z\n" +
+	"\n" +
+	"properties\x18\x06 \x03(\v2:.ryobi.environment.v1.ResourceHealthStatus.PropertiesEntryR\n" +
+	"properties\x1a=\n" +
+	"\x0fPropertiesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\":\n" +
+	"\x14ReportStatusResponse\x12\"\n" +
 	"\facknowledged\x18\x01 \x01(\bR\facknowledged\"\xd4\x01\n" +
 	"\x10HeartbeatRequest\x12)\n" +
 	"\x10environment_name\x18\x01 \x01(\tR\x0fenvironmentName\x128\n" +
@@ -986,13 +1193,14 @@ const file_proto_environment_proto_rawDesc = "" +
 	"\n" +
 	"\x06DEPLOY\x10\x00\x12\n" +
 	"\n" +
-	"\x06DELETE\x10\x012\xf2\x03\n" +
+	"\x06DELETE\x10\x012\xd9\x04\n" +
 	"\x12EnvironmentService\x12Y\n" +
 	"\bRegister\x12%.ryobi.environment.v1.RegisterRequest\x1a&.ryobi.environment.v1.RegisterResponse\x12_\n" +
 	"\n" +
 	"Unregister\x12'.ryobi.environment.v1.UnregisterRequest\x1a(.ryobi.environment.v1.UnregisterResponse\x12[\n" +
 	"\x0eWatchResources\x12\".ryobi.environment.v1.WatchRequest\x1a#.ryobi.environment.v1.ResourceEvent0\x01\x12e\n" +
-	"\fReportResult\x12).ryobi.environment.v1.ReportResultRequest\x1a*.ryobi.environment.v1.ReportResultResponse\x12\\\n" +
+	"\fReportResult\x12).ryobi.environment.v1.ReportResultRequest\x1a*.ryobi.environment.v1.ReportResultResponse\x12e\n" +
+	"\fReportStatus\x12).ryobi.environment.v1.ReportStatusRequest\x1a*.ryobi.environment.v1.ReportStatusResponse\x12\\\n" +
 	"\tHeartbeat\x12&.ryobi.environment.v1.HeartbeatRequest\x1a'.ryobi.environment.v1.HeartbeatResponseB,Z*github.com/ryobi-project/ryobi/pkg/grpcapib\x06proto3"
 
 var (
@@ -1008,7 +1216,7 @@ func file_proto_environment_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_environment_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_proto_environment_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_proto_environment_proto_goTypes = []any{
 	(OperationType)(0),              // 0: ryobi.environment.v1.OperationType
 	(*RegisterRequest)(nil),         // 1: ryobi.environment.v1.RegisterRequest
@@ -1023,40 +1231,48 @@ var file_proto_environment_proto_goTypes = []any{
 	(*ResourceEvent)(nil),           // 10: ryobi.environment.v1.ResourceEvent
 	(*ReportResultRequest)(nil),     // 11: ryobi.environment.v1.ReportResultRequest
 	(*ReportResultResponse)(nil),    // 12: ryobi.environment.v1.ReportResultResponse
-	(*HeartbeatRequest)(nil),        // 13: ryobi.environment.v1.HeartbeatRequest
-	(*HeartbeatResponse)(nil),       // 14: ryobi.environment.v1.HeartbeatResponse
-	nil,                             // 15: ryobi.environment.v1.EnvironmentConfig.ProvidersEntry
-	nil,                             // 16: ryobi.environment.v1.EnvironmentConfig.TerraformProvidersEntry
-	nil,                             // 17: ryobi.environment.v1.RecipeRegistration.DefaultParametersEntry
-	nil,                             // 18: ryobi.environment.v1.ResourceEvent.ParametersEntry
-	nil,                             // 19: ryobi.environment.v1.ReportResultRequest.OutputsEntry
+	(*ReportStatusRequest)(nil),     // 13: ryobi.environment.v1.ReportStatusRequest
+	(*ResourceHealthStatus)(nil),    // 14: ryobi.environment.v1.ResourceHealthStatus
+	(*ReportStatusResponse)(nil),    // 15: ryobi.environment.v1.ReportStatusResponse
+	(*HeartbeatRequest)(nil),        // 16: ryobi.environment.v1.HeartbeatRequest
+	(*HeartbeatResponse)(nil),       // 17: ryobi.environment.v1.HeartbeatResponse
+	nil,                             // 18: ryobi.environment.v1.EnvironmentConfig.ProvidersEntry
+	nil,                             // 19: ryobi.environment.v1.EnvironmentConfig.TerraformProvidersEntry
+	nil,                             // 20: ryobi.environment.v1.RecipeRegistration.DefaultParametersEntry
+	nil,                             // 21: ryobi.environment.v1.ResourceEvent.ParametersEntry
+	nil,                             // 22: ryobi.environment.v1.ReportResultRequest.OutputsEntry
+	nil,                             // 23: ryobi.environment.v1.ResourceHealthStatus.PropertiesEntry
 }
 var file_proto_environment_proto_depIdxs = []int32{
 	2,  // 0: ryobi.environment.v1.RegisterRequest.config:type_name -> ryobi.environment.v1.EnvironmentConfig
 	4,  // 1: ryobi.environment.v1.RegisterRequest.recipes:type_name -> ryobi.environment.v1.RecipeRegistration
 	5,  // 2: ryobi.environment.v1.RegisterRequest.capabilities:type_name -> ryobi.environment.v1.EnvironmentCapabilities
-	15, // 3: ryobi.environment.v1.EnvironmentConfig.providers:type_name -> ryobi.environment.v1.EnvironmentConfig.ProvidersEntry
-	16, // 4: ryobi.environment.v1.EnvironmentConfig.terraform_providers:type_name -> ryobi.environment.v1.EnvironmentConfig.TerraformProvidersEntry
-	17, // 5: ryobi.environment.v1.RecipeRegistration.default_parameters:type_name -> ryobi.environment.v1.RecipeRegistration.DefaultParametersEntry
+	18, // 3: ryobi.environment.v1.EnvironmentConfig.providers:type_name -> ryobi.environment.v1.EnvironmentConfig.ProvidersEntry
+	19, // 4: ryobi.environment.v1.EnvironmentConfig.terraform_providers:type_name -> ryobi.environment.v1.EnvironmentConfig.TerraformProvidersEntry
+	20, // 5: ryobi.environment.v1.RecipeRegistration.default_parameters:type_name -> ryobi.environment.v1.RecipeRegistration.DefaultParametersEntry
 	0,  // 6: ryobi.environment.v1.ResourceEvent.operation:type_name -> ryobi.environment.v1.OperationType
-	18, // 7: ryobi.environment.v1.ResourceEvent.parameters:type_name -> ryobi.environment.v1.ResourceEvent.ParametersEntry
-	19, // 8: ryobi.environment.v1.ReportResultRequest.outputs:type_name -> ryobi.environment.v1.ReportResultRequest.OutputsEntry
-	3,  // 9: ryobi.environment.v1.EnvironmentConfig.ProvidersEntry.value:type_name -> ryobi.environment.v1.ProviderConfig
-	1,  // 10: ryobi.environment.v1.EnvironmentService.Register:input_type -> ryobi.environment.v1.RegisterRequest
-	7,  // 11: ryobi.environment.v1.EnvironmentService.Unregister:input_type -> ryobi.environment.v1.UnregisterRequest
-	9,  // 12: ryobi.environment.v1.EnvironmentService.WatchResources:input_type -> ryobi.environment.v1.WatchRequest
-	11, // 13: ryobi.environment.v1.EnvironmentService.ReportResult:input_type -> ryobi.environment.v1.ReportResultRequest
-	13, // 14: ryobi.environment.v1.EnvironmentService.Heartbeat:input_type -> ryobi.environment.v1.HeartbeatRequest
-	6,  // 15: ryobi.environment.v1.EnvironmentService.Register:output_type -> ryobi.environment.v1.RegisterResponse
-	8,  // 16: ryobi.environment.v1.EnvironmentService.Unregister:output_type -> ryobi.environment.v1.UnregisterResponse
-	10, // 17: ryobi.environment.v1.EnvironmentService.WatchResources:output_type -> ryobi.environment.v1.ResourceEvent
-	12, // 18: ryobi.environment.v1.EnvironmentService.ReportResult:output_type -> ryobi.environment.v1.ReportResultResponse
-	14, // 19: ryobi.environment.v1.EnvironmentService.Heartbeat:output_type -> ryobi.environment.v1.HeartbeatResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	21, // 7: ryobi.environment.v1.ResourceEvent.parameters:type_name -> ryobi.environment.v1.ResourceEvent.ParametersEntry
+	22, // 8: ryobi.environment.v1.ReportResultRequest.outputs:type_name -> ryobi.environment.v1.ReportResultRequest.OutputsEntry
+	14, // 9: ryobi.environment.v1.ReportStatusRequest.health:type_name -> ryobi.environment.v1.ResourceHealthStatus
+	23, // 10: ryobi.environment.v1.ResourceHealthStatus.properties:type_name -> ryobi.environment.v1.ResourceHealthStatus.PropertiesEntry
+	3,  // 11: ryobi.environment.v1.EnvironmentConfig.ProvidersEntry.value:type_name -> ryobi.environment.v1.ProviderConfig
+	1,  // 12: ryobi.environment.v1.EnvironmentService.Register:input_type -> ryobi.environment.v1.RegisterRequest
+	7,  // 13: ryobi.environment.v1.EnvironmentService.Unregister:input_type -> ryobi.environment.v1.UnregisterRequest
+	9,  // 14: ryobi.environment.v1.EnvironmentService.WatchResources:input_type -> ryobi.environment.v1.WatchRequest
+	11, // 15: ryobi.environment.v1.EnvironmentService.ReportResult:input_type -> ryobi.environment.v1.ReportResultRequest
+	13, // 16: ryobi.environment.v1.EnvironmentService.ReportStatus:input_type -> ryobi.environment.v1.ReportStatusRequest
+	16, // 17: ryobi.environment.v1.EnvironmentService.Heartbeat:input_type -> ryobi.environment.v1.HeartbeatRequest
+	6,  // 18: ryobi.environment.v1.EnvironmentService.Register:output_type -> ryobi.environment.v1.RegisterResponse
+	8,  // 19: ryobi.environment.v1.EnvironmentService.Unregister:output_type -> ryobi.environment.v1.UnregisterResponse
+	10, // 20: ryobi.environment.v1.EnvironmentService.WatchResources:output_type -> ryobi.environment.v1.ResourceEvent
+	12, // 21: ryobi.environment.v1.EnvironmentService.ReportResult:output_type -> ryobi.environment.v1.ReportResultResponse
+	15, // 22: ryobi.environment.v1.EnvironmentService.ReportStatus:output_type -> ryobi.environment.v1.ReportStatusResponse
+	17, // 23: ryobi.environment.v1.EnvironmentService.Heartbeat:output_type -> ryobi.environment.v1.HeartbeatResponse
+	18, // [18:24] is the sub-list for method output_type
+	12, // [12:18] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_proto_environment_proto_init() }
@@ -1070,7 +1286,7 @@ func file_proto_environment_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_environment_proto_rawDesc), len(file_proto_environment_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   19,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
